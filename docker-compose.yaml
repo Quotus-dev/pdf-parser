@@ -1,0 +1,64 @@
+version: '3.9'
+services:
+  database:
+    image: postgres:16
+    container_name: postgres
+    restart: always
+    ports:
+      - 5432:5432
+    volumes:
+      - ./data:/data/db
+    networks:
+      - mjunction
+    environment:
+      - POSTGRES_USER:postgres
+      - POSTGRES_PASSWORD:admin
+      - POSTGRES_DB:mjunctionDB
+      - PGDATA:/data/db
+  # client:
+  #   build:
+  #     context: './client'
+  #     dockerfile: Dockerfile
+  #   ports:
+  #     - 3000:3000
+  #   container_name: lip-client
+  #   env_file:
+  #     - ./client/.env
+  #   networks:
+  #     - lip-network
+  #   volumes:
+  #     - ./client:/app
+  #     - /app/node_modules
+  #   depends_on:
+  #     - server
+  server:
+    build:
+      context: './server'
+      dockerfile: Dockerfile
+    ports:
+      - 5050:5050
+    container_name: server
+    env_file:
+      - ./server/.env
+    networks:
+      - mjunction
+    volumes:
+      - ./server:/app
+      - /app/node_modules
+    depends_on:
+      - database
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: my-pgadmin-container
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@root.com
+      PGADMIN_DEFAULT_PASSWORD: root
+    ports:
+      - "5060:80"
+    depends_on:
+      - database
+
+networks:
+  data: {}
+  mjunction:
+    
