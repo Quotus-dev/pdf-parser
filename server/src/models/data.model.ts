@@ -1,26 +1,19 @@
 import { DataTypes, Model, Sequelize } from "sequelize";
 
-const sequelize = new Sequelize(
-  process.env.DB_NAME!,
-  "admin",
-  process.env.DB_PASSWORD,
-  {
-    host: "localhost",
-    dialect: "postgres",
-  }
-);
+import { sequelize } from "../libs/db";
 
 class Clause extends Model {}
 
 Clause.init(
   {
-    clause: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
-    value: {
-      type: DataTypes.TEXT("long"),
-      allowNull: false,
+    data: {
+      type: DataTypes.JSONB,
+      get() {
+        return JSON.parse(this.getDataValue("clauses"));
+      },
+      set(value) {
+        return this.setDataValue("clauses", JSON.stringify(value));
+      },
     },
   },
   {
@@ -33,6 +26,20 @@ Clause.init(
 
 (async () => {
   await Clause.sync({ force: true });
+})();
+
+(async () => {
+  try {
+    const newClause = await Clause.create({
+      data: {
+        test: "test",
+        "1": "test2",
+      },
+    });
+    console.log("New Clause created:", newClause.toJSON());
+  } catch (error) {
+    console.error("Error creating a new Clause:", error);
+  }
 })();
 
 export default Clause;

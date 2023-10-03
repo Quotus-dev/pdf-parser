@@ -46,19 +46,20 @@ class PdfTextExtractor {
 
     return new Promise<Record<string, string>>((resolve, reject) => {
       this.pdfExtract.extractBuffer(buffer, options, (err, data) => {
-        if (err) return console.log(err);
+        if (err) return reject(err);
 
         const result: any = {};
 
-        // console.log(JSON.stringify(data.pages))
+        let currentPoint = "";
+        let stopMatching = false;
+        let tableEncountered = false;
 
         for (const page of data!.pages) {
           const pageContent = page.content;
 
-          let currentPoint = "";
           let isInsideDoubleHash = false;
           let clauseStarted = false;
-          let textToIgnore = "";
+          let cleanedText = "";
 
           for (const item of pageContent) {
             const { str } = item;
@@ -69,36 +70,42 @@ class PdfTextExtractor {
 
             if (str.startsWith("**End of Clauses**")) {
               clauseStarted = false;
+              stopMatching = true;
               currentPoint = "";
             }
 
-            // Ignore text between # and ##
-            if (str.startsWith("#")) {
-              textToIgnore = "";
-            } else if (str.startsWith("##")) {
-              textToIgnore = "";
-              isInsideDoubleHash = !isInsideDoubleHash;
-            } else if (isInsideDoubleHash) {
-              textToIgnore += str + " ";
-            } else if (!isInsideDoubleHash) {
-              const pointMatch = str.match(/^\d+(\.\d+)*\.$/);
+            const tableMatch = str.match(/TABLE/g);
 
-              // console.log(pointMatch)
+            if (tableMatch) {
+              tableEncountered = true;
+            }
+
+            if (tableEncountered) {
+              delete result[currentPoint];
+              currentPoint = "";
+              cleanedText = "";
+            }
+
+            if (str.startsWith("#")) {
+              isInsideDoubleHash = true;
+              if (str.endsWith("##")) {
+                isInsideDoubleHash = false;
+              }
+            } else if (!isInsideDoubleHash && !stopMatching) {
+              const pointMatch = str.match(
+                /\b\d+(\.\d+)*\.$|\*\*End of Clauses\*\*/g
+              );
+              // const pointMatch = str.match(/\b([a-zA-Z])\1*\.|([A-Z])\2*\.|([0-9])\)|([IVXLCDM]+)\.|([ivx]+)\.|([a-zA-Z])\1\)|(0[1-9]|[1-9][0-9]*)\.\$/);
 
               if (pointMatch) {
+                tableEncountered = false;
                 currentPoint = pointMatch[0];
-                // console.log(pointMatch[0])
                 result[currentPoint] = "";
               } else if (currentPoint) {
-                const cleanedText = str.replace(/\s+/g, " ").trim();
+                cleanedText = str.replace(/\s+/g, " ").trim();
                 result[currentPoint] += cleanedText + " ";
               }
             }
-          }
-
-          // Add the text to ignore to the result if clause has started
-          if (clauseStarted && textToIgnore.trim() !== "") {
-            result[currentPoint] += textToIgnore.trim() + " ";
           }
         }
 

@@ -3,6 +3,6 @@ import { getPdfData } from "../controllers/pdf.controller";
 
 const router = Router();
 
-router.route("/").get(getPdfData as any);
+router.route("/").post(getPdfData as any);
 
 export default router;

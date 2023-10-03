@@ -7,7 +7,7 @@ export const upload = catchAsync(
     res.status(200).json({
       status: "success",
       error: false,
-      message: "Data uploaded successfully",
+      message: "Document uploaded successfully",
       data: {
         ...req.file,
       },

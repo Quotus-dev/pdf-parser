@@ -1,10 +1,6 @@
 import { MONGO_URI, PORT, app } from ".";
 
-import { Sequelize } from "sequelize";
-
-const sequelize = new Sequelize(
-  "postgres://postgres:admin@postgres:5432/mjunctionDB"
-);
+import { sequelize } from "./libs/db";
 
 (async () => {
   try {
@@ -14,15 +10,8 @@ const sequelize = new Sequelize(
       console.log("🚀 Server is running on port:", PORT);
     });
   } catch (error) {
-    console.error("error synching database", error);
+    console.error("Error synching database", error);
   }
 })();
-
-// sequelize
-//   .authenticate()
-//   .then(() => {
-//     console.log("Connection has been established successfully.");
-//   })
-//   .catch((err: Error) => console.log("🔴 Error:", err.message));
 
 export { sequelize };

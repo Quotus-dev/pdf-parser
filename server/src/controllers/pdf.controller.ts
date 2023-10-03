@@ -1,8 +1,8 @@
+import { AppError, catchAsync } from "../libs/utils";
 import { NextFunction, Request, Response } from "express";
 
 import Clause from "../models/data.model";
 import { Sequelize } from "sequelize";
-import { catchAsync } from "../libs/utils";
 import { pdfTextExtractor } from "../services/pdfService";
 
 // import { sequelize } from "../server";
@@ -30,40 +30,52 @@ export const getPdfData = catchAsync(
     next: NextFunction
   ) => {
     const fileUrl = req.body.fileUrl;
-    // let data: Clause;
+    // let data;
 
     try {
-      const res = await pdfTextExtractor.extractTextFromPdf(
-        "uploads\\1695618274008-pdf-jagruti.pdf"
-      );
+      const res = await pdfTextExtractor.extractTextFromPdf(fileUrl);
+
+      if (!Object.keys(res).length) {
+        next(new AppError("Data can't be null", 400));
+      }
+
       // console.log(res);
+
+      await Clause.create({
+        data: res,
+      });
+
+      // await data.save();
+
+      // console.log(data);
+
+      // await clause.save();
       // await Clause.truncate();
       // await sequelize.transaction(async (t) => {
-      for (const key in res) {
-        console.log({
-          key,
-          value: res[key],
-        });
-      }
-      //     await Clause.create({
-      //       clause: parseFloat(key),
-      //       value: res[key],
+      //   for (const key in data) {
+      //     console.log({
+      //       key,
+      //       value: data[key],
       //     });
       //   }
+      //   await Clause.create({
+      //     clause: parseFloat(key),
+      //     value: data[key],
+      //   });
+      // }
 
-      //   // console.log({ data });
-      // });
-      // console.log("JSON data inserted successfully------------");
+      // console.log({ data });
     } catch (err) {
       console.log("Error: ", err);
     }
 
-    // console.log(fileUrl);
-
     res.status(200).json({
       status: "success",
       error: false,
-      message: "This is the file url " + fileUrl,
+      message: "Data extracted successfully",
+      // data: {
+      //   ...data,
+      // },
     });
   }
 );
