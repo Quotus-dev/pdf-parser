@@ -1,6 +1,9 @@
 import { PDFExtract, PDFExtractOptions } from "pdf.js-extract";
 
 import fs from "fs";
+import pdf_table_extractor from "pdf_table_extractor";
+
+// const pdf_table_extractor = require("pdf_table_extractor");
 
 class PdfTextExtractor {
   private pdfExtract: PDFExtract;
@@ -115,6 +118,20 @@ class PdfTextExtractor {
 
         resolve(result);
       });
+    });
+  }
+
+  public async extractTableFromPdf(filePath: string) {
+    return new Promise((resolve, reject) => {
+      function success(result: any) {
+        resolve(result);
+      }
+
+      function error(err: any) {
+        reject(err);
+      }
+
+      tableExtractor(filePath, success, error);
     });
   }
 }
