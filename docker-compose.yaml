@@ -14,26 +14,6 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: admin
       POSTGRES_DB: mjunction
-      # - DATABASE_URL=postgres://postgres:admin@postgres:5432/mjunction
-
-    #   - POSTGRES_HOST_AUTH_METHOD=trust
-      # - PGDATA:/data/db
-  # client:
-  #   build:
-  #     context: './client'
-  #     dockerfile: Dockerfile
-  #   ports:
-  #     - 3000:3000
-  #   container_name: lip-client
-  #   env_file:
-  #     - ./client/.env
-  #   networks:
-  #     - lip-network
-  #   volumes:
-  #     - ./client:/app
-  #     - /app/node_modules
-  #   depends_on:
-  #     - server
   server:
     build:
       context: './server'
@@ -41,13 +21,14 @@ services:
     ports:
       - 5050:5050
     container_name: server
-    env_file:
-      - ./server/.env
     networks:
       - mjunction
-    volumes:
-      - ./server:/app
-      - /app/node_modules
+    environment:
+      - POSTGRES_DB=mjunction
+      - POSTGRES_HOST=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=admin
+      - PORT=5050
     depends_on:
       - db
 
