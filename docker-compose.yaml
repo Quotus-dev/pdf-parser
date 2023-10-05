@@ -7,13 +7,26 @@ services:
     ports:
       - 5432:5432
     volumes:
-      - ./data:/data/db
+      - ./data/db:/var/lib/postgresql/data
     networks:
       - mjunction
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: admin
       POSTGRES_DB: mjunction
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin
+    restart: always
+    ports:
+      - "1001:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@root.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    depends_on:
+      - db
   server:
     build:
       context: './server'
@@ -33,6 +46,8 @@ services:
       - db
 
 networks:
-  data: {}
   mjunction:
+volumes:
+  data: {}
+  pgadmin-data:
     
