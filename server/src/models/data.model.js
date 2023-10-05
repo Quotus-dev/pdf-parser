@@ -30,8 +30,8 @@ Clause.init(
   }
 );
 
-(async () => {
-  await Clause.sync();
-})();
+// (async () => {
+//   await Clause.sync();
+// })();
 
 module.exports = Clause;
