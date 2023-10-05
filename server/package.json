@@ -4,9 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon -L src/server.ts",
-    "start": "node src/server.ts NODE_ENV=production",
-    "debug": "ndb server.ts"
+    "dev": "nodemon -L src/server.js",
+    "start": "node src/server.js NODE_ENV=production",
+    "debug": "ndb server.js"
   },
   "keywords": [],
   "author": "",

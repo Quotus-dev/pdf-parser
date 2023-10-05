@@ -1,26 +1,19 @@
-import { PDFExtract, PDFExtractOptions } from "pdf.js-extract";
+const { PDFExtract, PDFExtractOptions } = require("pdf.js-extract");
 
-import fs from "fs";
-import pdf_table_extractor from "pdf_table_extractor";
+const fs = require("fs");
+const pdf_table_extractor = require("pdf-table-extractor");
 
 // const pdf_table_extractor = require("pdf_table_extractor");
 
 class PdfTextExtractor {
-  private pdfExtract: PDFExtract;
-  // private validationFailed: boolean;
 
   constructor() {
     this.pdfExtract = new PDFExtract();
   }
 
-  public async validate(
-    str: string
-  ): Promise<{ validationFailed: boolean; message?: string }> {
+  async validate(str) {
     return new Promise((resolve, reject) => {
-      const status: {
-        validationFailed: boolean;
-        message?: string;
-      } = {
+      const status = {
         validationFailed: true,
         message: "",
       };
@@ -33,31 +26,28 @@ class PdfTextExtractor {
         status.message = "Validation Failed";
       } else {
         status.validationFailed = false;
-        status.message = "Validation Successfull";
+        status.message = "Validation Successful";
       }
 
       resolve(status);
     });
   }
 
-  public async extractTextFromPdf(
-    filePath: string
-  ): Promise<Record<string, string>> {
+  async extractTextFromPdf(filePath) {
     const buffer = fs.readFileSync(filePath);
+    const options = {};
 
-    const options: PDFExtractOptions = {};
-
-    return new Promise<Record<string, string>>((resolve, reject) => {
+    return new Promise((resolve, reject) => {
       this.pdfExtract.extractBuffer(buffer, options, (err, data) => {
         if (err) return reject(err);
 
-        const result: any = {};
+        const result = {};
 
         let currentPoint = "";
         let stopMatching = false;
         let tableEncountered = false;
 
-        for (const page of data!.pages) {
+        for (const page of data.pages) {
           const pageContent = page.content;
 
           let isInsideDoubleHash = false;
@@ -98,7 +88,6 @@ class PdfTextExtractor {
               const pointMatch = str.match(
                 /\b\d+(\.\d+)*\.$|\*\*End of Clauses\*\*/g
               );
-              // const pointMatch = str.match(/\b([a-zA-Z])\1*\.|([A-Z])\2*\.|([0-9])\)|([IVXLCDM]+)\.|([ivx]+)\.|([a-zA-Z])\1\)|(0[1-9]|[1-9][0-9]*)\.\$/);
 
               if (pointMatch) {
                 tableEncountered = false;
@@ -121,19 +110,21 @@ class PdfTextExtractor {
     });
   }
 
-  public async extractTableFromPdf(filePath: string) {
+  async extractTableFromPdf(filePath) {
     return new Promise((resolve, reject) => {
-      function success(result: any) {
+      function success(result) {
         resolve(result);
       }
 
-      function error(err: any) {
+      function error(err) {
         reject(err);
       }
 
-      tableExtractor(filePath, success, error);
+      pdf_table_extractor(filePath, success, error);
     });
   }
 }
 
-export const pdfTextExtractor = new PdfTextExtractor();
+const pdfTextExtractor = new PdfTextExtractor()
+
+module.exports = pdfTextExtractor;

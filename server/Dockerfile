@@ -2,7 +2,7 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-COPY ["package.json", "package-lock.json", "tsconfig.json", ".env", "./"]
+COPY ["package.json", ".env", "./"]
 
 RUN npm install
 
