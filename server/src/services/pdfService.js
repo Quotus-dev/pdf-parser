@@ -2,6 +2,7 @@ const { PDFExtract, PDFExtractOptions } = require("pdf.js-extract");
 
 const fs = require("fs");
 const pdf_table_extractor = require("pdf-table-extractor");
+const { removeNewlinesFromTable } = require("../libs/utils");
 
 // const pdf_table_extractor = require("pdf_table_extractor");
 
@@ -9,6 +10,8 @@ class PdfTextExtractor {
 
   constructor() {
     this.pdfExtract = new PDFExtract();
+    this.clauseEnded = false
+    this.lastClausePage = ""
   }
 
   async validate(str) {
@@ -65,6 +68,10 @@ class PdfTextExtractor {
               clauseStarted = false;
               stopMatching = true;
               currentPoint = "";
+              this.clauseEnded = true
+              this.lastClausePage = page.pageInfo.num
+
+              console.log({ lastpage: this.lastClausePage })
             }
 
             const tableMatch = str.match(/TABLE/g);
@@ -111,9 +118,31 @@ class PdfTextExtractor {
   }
 
   async extractTableFromPdf(filePath) {
+    const lastPage = this.lastClausePage
     return new Promise((resolve, reject) => {
       function success(result) {
-        resolve(result);
+        const data = result.pageTables.map((d) => {
+          const t = removeNewlinesFromTable(d.tables)
+          return { ...d, tables: t }
+        })
+
+        let stopExtracting = false
+
+        const d = data.map((d) => {
+          if (d.page === lastPage) {
+            stopExtracting = true
+          }
+
+          if (!stopExtracting) {
+            return d
+          }
+        })
+
+        // const d = data.filter((d) => d.page === 7)
+
+        // console.log(d)
+
+        resolve(d);
       }
 
       function error(err) {

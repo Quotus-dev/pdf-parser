@@ -17,5 +17,17 @@ const catchAsync = (fn) => {
   };
 };
 
+exports.removeNewlinesFromTable = (tables) => {
+  // Iterate through the outer array (tables)
+  for (let i = 0; i < tables.length; i++) {
+    // Iterate through the inner subarray
+    for (let j = 0; j < tables[i].length; j++) {
+      // Replace newline characters ("\n") with an empty string
+      tables[i][j] = tables[i][j].replace(/\n/g, '');
+    }
+  }
+  return tables;
+}
+
 module.exports.AppError = AppError
 module.exports.catchAsync = catchAsync

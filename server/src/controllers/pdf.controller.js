@@ -5,8 +5,6 @@ const Clause = require("../models/data.model");
 const { Sequelize } = require("sequelize");
 const pdfTextExtractor = require("../services/pdfService");
 
-// import { sequelize } from "../server";
-
 exports.getPdfData = catchAsync(
   async (
     req,
@@ -15,9 +13,13 @@ exports.getPdfData = catchAsync(
   ) => {
     const fileUrl = req.body.fileUrl;
     // let data;
+    let tables;
 
     try {
       const res = await pdfTextExtractor.extractTextFromPdf(fileUrl);
+      tables = await pdfTextExtractor.extractTableFromPdf(fileUrl)
+      tables = JSON.stringify(tables).replace(/\n/g, "")
+      tables = JSON.parse(tables)
 
       if (!Object.keys(res).length) {
         next(new AppError("Data can't be null", 400));
@@ -29,13 +31,13 @@ exports.getPdfData = catchAsync(
       // console.log(clauses)
 
 
-      const data = await Clause.create({
-        data: {
-          ...res,
-        },
-      });
+      // const data = await Clause.create({
+      //   data: {
+      //     ...res,
+      //   },
+      // });
 
-      await data.save();
+      // await data.save();
 
     } catch (err) {
       console.log("Error: ", err);
@@ -46,7 +48,7 @@ exports.getPdfData = catchAsync(
       error: false,
       message: "Data extracted successfully",
       data: {
-
+        tables
       },
     });
   }
