@@ -10,25 +10,16 @@ const pdfRoutes = require("./routes/pdf.routes");
 const { upload } = require("./libs");
 const uploadRoutes = require("./routes/upload.routes");
 const { sequelize } = require("./libs/db");
-
-// import { pool } from "./server";
+const cors = require("cors")
 
 config();
 
 const app = express();
 
-// sequelize
-//   .sync()
-//   .then((result) => {
-//     console.log(result);
-//   })
-//   .catch((err) => {
-//     console.log(err);
-//   });
-
 app.use(morgan("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cors())
 
 app.use(express.static("uploads"));
 

@@ -60,6 +60,12 @@ class PdfTextExtractor {
           for (const item of pageContent) {
             const { str } = item;
 
+            this.validate(str).then(res => {
+              if (res.validationFailed) {
+                reject(res)
+              }
+            })
+
             if (str.startsWith("INTRODUCTION")) {
               clauseStarted = true;
             }
@@ -137,10 +143,6 @@ class PdfTextExtractor {
             return d
           }
         })
-
-        // const d = data.filter((d) => d.page === 7)
-
-        // console.log(d)
 
         resolve(d);
       }
