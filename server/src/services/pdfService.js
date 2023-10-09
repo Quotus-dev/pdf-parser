@@ -20,13 +20,13 @@ class PdfTextExtractor {
         validationFailed: true,
         message: "",
       };
-      const pointMatch = str.match(
-        /\b([a-zA-Z])\1*\.|([A-Z])\2*\.|([0-9])\)|([IVXLCDM]+)\.|([ivx]+)\.|([a-zA-Z])\1\)|(0[1-9]|[1-9][0-9]*)\.\$/
-      );
+      const pointMatch = str.match(/^(a|A|i|I)[.)]$/);
 
       if (pointMatch) {
+        console.log({ pointMatch })
         status.validationFailed = true;
         status.message = "Validation Failed";
+
       } else {
         status.validationFailed = false;
         status.message = "Validation Successful";
@@ -40,8 +40,8 @@ class PdfTextExtractor {
     const buffer = fs.readFileSync(filePath);
     const options = {};
 
-    return new Promise((resolve, reject) => {
-      this.pdfExtract.extractBuffer(buffer, options, (err, data) => {
+    return new Promise(async (resolve, reject) => {
+      this.pdfExtract.extractBuffer(buffer, options, async (err, data) => {
         if (err) return reject(err);
 
         const result = {};
@@ -49,6 +49,9 @@ class PdfTextExtractor {
         let currentPoint = "";
         let stopMatching = false;
         let tableEncountered = false;
+
+        // Define an array to store validation promises
+        const validationPromises = [];
 
         for (const page of data.pages) {
           const pageContent = page.content;
@@ -60,11 +63,8 @@ class PdfTextExtractor {
           for (const item of pageContent) {
             const { str } = item;
 
-            this.validate(str).then(res => {
-              if (res.validationFailed) {
-                reject(res)
-              }
-            })
+            // Push the validation promise into the array
+            if (!stopMatching) validationPromises.push(this.validate(str));
 
             if (str.startsWith("INTRODUCTION")) {
               clauseStarted = true;
@@ -74,10 +74,10 @@ class PdfTextExtractor {
               clauseStarted = false;
               stopMatching = true;
               currentPoint = "";
-              this.clauseEnded = true
-              this.lastClausePage = page.pageInfo.num
+              this.clauseEnded = true;
+              this.lastClausePage = page.pageInfo.num;
 
-              console.log({ lastpage: this.lastClausePage })
+              console.log({ lastpage: this.lastClausePage });
             }
 
             const tableMatch = str.match(/TABLE/g);
@@ -114,11 +114,24 @@ class PdfTextExtractor {
           }
         }
 
-        for (const key in result) {
-          result[key] = result[key].trim();
-        }
+        // Wait for all validation promises to resolve
+        const validationResults = await Promise.all(validationPromises);
 
-        resolve(result);
+        // Check if any validation failed
+        const validationFailed = validationResults.some((res) => res.validationFailed);
+
+        // console.log({ validationFailed })
+
+        if (validationFailed) {
+          // Reject with an error message
+          reject({ validationFailed: true, message: "Validation Failed" });
+        } else {
+          for (const key in result) {
+            result[key] = result[key].trim();
+          }
+
+          resolve(result);
+        }
       });
     });
   }

@@ -6,7 +6,7 @@ const { Sequelize } = require("sequelize");
 const pdfTextExtractor = require("../services/pdfService");
 const Table = require("../models/table.model");
 
-exports.getPdfData = catchAsync(
+exports.extractDataAndUploadToDB = catchAsync(
   async (
     req,
     res,
@@ -23,16 +23,6 @@ exports.getPdfData = catchAsync(
       tables = JSON.stringify(tables).replace(/\n/g, "")
       tables = JSON.parse(tables)
 
-      // if (!Object.keys(res).length) {
-      //   next(new AppError("Data can't be null", 400));
-      // }
-
-      // console.log(res);
-
-      // const clauses = await Clause.findAll()
-      // console.log(clauses)
-
-
       clauses = await Clause.create({
         data: {
           ...res,
@@ -43,21 +33,28 @@ exports.getPdfData = catchAsync(
 
       tables = await Table.create({
         data: {
+          id: clauses.id,
           ...tables
         }
       })
 
       await tables.save()
 
-      // const table = await Table.findAll()
-
-      // console.log(table)
-
     } catch (err) {
-      next(err);
+      if (err.validationFailed) {
+        return res.status(400).json({
+          status: "failed",
+          error: true,
+          message: err?.message || "Validation Failed",
+        });
+      } else {
+        return res.status(500).json({
+          status: "failed",
+          error: true,
+          message: err?.message || "Some error occured, please try again later",
+        })
+      }
     }
-
-    // console.log({ tables, clauses })
 
     res.status(200).json({
       status: "success",
@@ -70,3 +67,39 @@ exports.getPdfData = catchAsync(
     });
   }
 );
+
+exports.getPDFData = catchAsync(async (req, res, next) => {
+
+  const data = await Clause.findAll()
+
+  const tables = await Table.findAll()
+
+  res.status(200).json({
+    message: "success",
+    error: false,
+    message: "Data fetched successfully",
+    data,
+    tables
+  })
+})
+
+exports.getSinglePdfData = catchAsync(async (req, res, next) => {
+  const id = req.params.id
+  const clauseQuery = req.query.clause
+
+  let pdf;
+
+  if (clauseQuery) {
+    pdf = await Clause.findByPk(id)
+    pdf = { [clauseQuery]: pdf.data[clauseQuery] }
+  } else {
+    pdf = await Clause.findByPk(id)
+  }
+
+  res.status(200).json({
+    status: "Success",
+    error: false,
+    message: "Pdf data fetched successfully",
+    pdf
+  })
+})
