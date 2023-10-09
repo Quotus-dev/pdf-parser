@@ -20,39 +20,45 @@ function App() {
   const [loading, setLoading] = useState<boolean>(false);
   const [clauses, setClauses] = useState<any>({});
   const [tables, setTables] = useState<any>({});
+  const [err, setErr] = useState("");
 
   function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
     setFile(e.target.files![0]);
   }
 
   async function handleSubmit() {
-    console.log(file);
     const fd = new FormData();
 
     if (!file) {
-      console.log("Please select a file before trying ...");
+      setErr("Please select a file before trying ...");
+      console.log(err);
       return;
     }
 
     fd.append("file", file);
 
-    const res = await axios.post("http://localhost:5050/api/v1/upload", fd, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    });
+    const res = await axios.post(
+      "http://164.164.178.27:5050/api/v1/upload",
+      fd,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
 
     // console.log(res.data?.data?.path);
 
     try {
       setLoading(true);
-      const data = await axios.post("http://localhost:5050/api/v1/pdf", {
+      const data = await axios.post("http://164.164.178.27:5050/api/v1/pdf", {
         fileUrl: res.data?.data?.path,
       });
       setLoading(false);
       setClauses(data.data?.data?.clauses);
       setTables(data.data?.data?.tables);
     } catch (err) {
+      setErr("Something went wrong, please try again later");
       setLoading(false);
     }
   }
@@ -74,6 +80,7 @@ function App() {
             </Button>
           </div>
         </div>
+        {err && <h1>{err}</h1>}
         {loading && (
           <div className="grid border-2 min-h-[250px] rounded-md border-border place-content-center items-center gap-1.5">
             <Loader2Icon height={20} width={20} className="animate-spin" />
