@@ -55,6 +55,8 @@ services:
       - PORT=5050
     depends_on:
       - db
+    volumes:
+    - ./server:/app
 
 networks:
   mjunction:
