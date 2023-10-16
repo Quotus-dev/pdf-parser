@@ -3,12 +3,19 @@ const { PDFExtract, PDFExtractOptions } = require("pdf.js-extract");
 const fs = require("fs");
 const pdf_table_extractor = require("pdf-table-extractor");
 const { removeNewlinesFromTable } = require("../libs/utils");
-// const { exportImages } = require('pdf-export-images');
-// const pdf_table_extractor = require("pdf_table_extractor");
+
+const Tesseract = require("tesseract.js")
+const { createScheduler, createWorker } = require('tesseract.js');
+
+const model = require('wink-eng-lite-web-model');
+const winkNLP = require('wink-nlp');
 
 class PdfTextExtractor {
   constructor() {
     this.pdfExtract = new PDFExtract();
+    this.scheduler = createScheduler()
+    this.nlp = winkNLP(model, ["sbd", "pos"])
+    this.result = {}
     this.clauseEnded = false;
     this.lastClausePage = "";
   }
@@ -32,6 +39,113 @@ class PdfTextExtractor {
 
       resolve(status);
     });
+  }
+
+  async initializeWorkers(numWorkers) {
+    const workerGen = async () => {
+      const worker = await createWorker('eng', 1, {
+        logger: m => console.log(m),
+      });
+      this.scheduler.addWorker(worker);
+    }
+
+    const resArr = Array(numWorkers);
+    for (let i = 0; i < numWorkers; i++) {
+      resArr[i] = workerGen();
+    }
+    await Promise.all(resArr);
+  }
+
+  async processFiles(files) {
+
+    const promises = files.map(async (file) => {
+      const { data: { text } } = await this.scheduler.addJob('recognize', file);
+      return text;
+    });
+
+    const text = await Promise.all(promises);
+
+    text.map((t) => {
+      const doc = this.nlp.readDoc(t);
+      const tokens = doc.sentences().out();
+
+      let cleanedText = '';
+      let currentPoint = '';
+      let tableEncountered = false;
+      let clauseStarted = false;
+      let stopExtracting = false;
+
+      tokens.forEach((token) => {
+        const tableMatch = token.match(/TABLE/g);
+
+        if (token === "INTRODUCTION") {
+          clauseStarted = true;
+        }
+
+        if (tableMatch) {
+          tableEncountered = true;
+        }
+
+        if (tableEncountered) {
+          delete this.result[currentPoint];
+          currentPoint = '';
+          cleanedText = '';
+        }
+
+        // console.log({ token })
+
+        const tokenSeparated = token.split("\n");
+
+        const pointMatch = token.match(/^(?:\d+(\.\d+)*\.$|\*\*End of Clauses\*\*)$/);
+
+        if (pointMatch && !stopExtracting) {
+          if (Object.hasOwnProperty(this.result, pointMatch[0])) {
+            cleanedText = pointMatch[0];
+            this.result[currentPoint] += cleanedText;
+          } else {
+            tableEncountered = false;
+            currentPoint = pointMatch[0];
+            this.result[currentPoint] = '';
+          }
+          // console.log(currentPoint)
+        } else if (tokenSeparated) {
+          for (const separatedToken of tokenSeparated) {
+            const separatedTokenMatch = separatedToken.match(/^\d+(\.\d+)+(\.)+$|\*\*End of Clauses\*\*$/);
+
+            if (separatedToken === "INTRODUCTION") {
+              clauseStarted = true;
+            }
+
+            if (separatedToken === "**End of Clauses**") {
+              stopExtracting = true;
+            }
+
+            if (separatedTokenMatch && currentPoint != separatedTokenMatch[0] && !stopExtracting) {
+              tableEncountered = false;
+              currentPoint = separatedTokenMatch[0];
+              this.result[currentPoint] = '';
+            } else if (currentPoint && !stopExtracting) {
+              cleanedText = separatedToken.replace(/\s+/g, ' ').trim();
+              this.result[currentPoint] += cleanedText + ' ';
+
+              if (!clauseStarted) {
+                delete this.result[currentPoint];
+                currentPoint = '';
+                cleanedText = '';
+              }
+            }
+          }
+        }
+      });
+
+    });
+
+    for (const key in this.result) {
+      this.result[key] = this.result[key].trim();
+    }
+
+    await this.scheduler.terminate();
+    return this.result
   }
 
   async extractTextFromPdf(filePath) {
@@ -170,7 +284,7 @@ class PdfTextExtractor {
   }
   async extractImagesFromPdf(filePath) {
     // print(filePath,'extract_images')
-    console.log(filePath,'extract_images')
+    console.log(filePath, 'extract_images')
     // exportImages("file.pdf", "output/dir")
     //   .then((images) => console.log("Exported", images.length, "images"))
     //   .catch(console.error);

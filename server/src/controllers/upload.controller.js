@@ -16,6 +16,7 @@ exports.handleUpload = catchAsync(async (req, res, next) => {
       const pythonScript = "convert_to_images.py";
       handleScript(pythonScript, req.file.path, outputDir)
         .then((output) => {
+          console.log(`Output is: `, output)
           res.status(200).json({
             status: "success",
             error: false,

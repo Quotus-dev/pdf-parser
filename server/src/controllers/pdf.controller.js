@@ -12,13 +12,17 @@ exports.extractDataAndUploadToDB = catchAsync(
     res,
     next
   ) => {
-    const fileUrl = req.body.fileUrl;
+    const files = req.body.files;
     // let data;
     let tables;
     let clauses;
 
     try {
-      const res = await pdfTextExtractor.extractTextFromPdf(fileUrl);
+      // await pdfTextExtractor.initializeWorkers(50)
+      const result = await pdfTextExtractor.processFiles(files)
+
+      console.log(result)
+
       tables = await pdfTextExtractor.extractTableFromPdf(fileUrl)
       tables = JSON.stringify(tables).replace(/\n/g, "")
       tables = JSON.parse(tables)

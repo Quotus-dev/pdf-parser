@@ -39,12 +39,10 @@ exports.handleScript = (pythonScript, pdfFile, outputDir) => {
       `python3 ${pythonScript} "${pdfFile}" "${outputDir}"`,
       (error, stdout, stderr) => {
         if (error) {
-          console.error(`Error: ${error.message}`);
           reject(error);
           return;
         }
         if (stderr) {
-          console.error(`Stderr: ${stderr}`);
           reject(new Error(`Python script exited with an error: ${stderr}`));
           return;
         }
@@ -56,20 +54,23 @@ exports.handleScript = (pythonScript, pdfFile, outputDir) => {
             return;
           }
 
-          const fileNames = files.filter(file => {
+          let fileNames = files.filter(file => {
             const filePath = path.join(outputDir, file);
             return fs.statSync(filePath).isFile();
           });
-
-          console.log('Files in the folder:');
-          file_names = fileNames.map((file) => outputDir + '/' + file)
-          console.log(file_names);
+          fileNames = fileNames.map((file) => outputDir + '/' + file)
+          fileNames.sort((a, b) => {
+            const pageA = parseInt(a.match(/page_(\d+)/)[1]);
+            const pageB = parseInt(b.match(/page_(\d+)/)[1]);
+            return pageA - pageB;
+          });
+          resolve(fileNames);
           // extractInformation
           // extractInformation(file_names)
 
         });
 
-        resolve(stdout);
+        // resolve(stdout);
       }
     );
   });
