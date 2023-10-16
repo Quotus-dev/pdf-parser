@@ -14,16 +14,16 @@ class PdfTextExtractor {
     this.lastClausePage = ""
   }
 
-  async validate(str) {
+  async validate(str, pageNumber) {
     return new Promise((resolve, reject) => {
       const status = {
         validationFailed: true,
         message: "",
       };
-      const pointMatch = str.match(/^(a|A|i|I)[.)]$/);
+      const pointMatch = str.match(/^(a|A)[.)]$/);
 
       if (pointMatch) {
-        console.log({ pointMatch })
+        console.log({ pointMatch }, { pageNumber })
         status.validationFailed = true;
         status.message = "Validation Failed";
 
@@ -49,6 +49,8 @@ class PdfTextExtractor {
         let currentPoint = "";
         let stopMatching = false;
         let tableEncountered = false;
+        let count = 1
+        let wordTable = ""
 
         // Define an array to store validation promises
         const validationPromises = [];
@@ -64,12 +66,34 @@ class PdfTextExtractor {
             const { str } = item;
 
             // Push the validation promise into the array
-            if (!stopMatching) validationPromises.push(this.validate(str));
+            if (str.startsWith("T") && str.endsWith("T")) {
+              wordTable += str
+              count++
+            }
+
+            if (str.startsWith("ABLE") || str.endsWith("ABLE)") && count >= 2) {
+              wordTable += "ABLE"
+            }
+
+            if (wordTable === "TABLE") {
+              tableEncountered = true
+              count = 1
+              wordTable = ""
+            }
 
             if (str.startsWith("INTRODUCTION")) {
               clauseStarted = true;
             }
 
+            if (str.startsWith("**")) {
+              clauseStarted = false;
+              stopMatching = true;
+              currentPoint = "";
+              this.clauseEnded = true;
+              this.lastClausePage = page.pageInfo.num;
+
+              console.log({ lastpage: this.lastClausePage });
+            }
             if (str.startsWith("**End of Clauses**")) {
               clauseStarted = false;
               stopMatching = true;
@@ -87,6 +111,7 @@ class PdfTextExtractor {
             }
 
             if (tableEncountered) {
+              // console.log(currentPoint)
               delete result[currentPoint];
               currentPoint = "";
               cleanedText = "";
@@ -102,7 +127,15 @@ class PdfTextExtractor {
                 /\b\d+(\.\d+)*\.$|\*\*End of Clauses\*\*/g
               );
 
+              if (!tableEncountered && currentPoint) {
+                // console.log({ tableEncountered, currentPoint })
+                validationPromises.push(this.validate(str, page.pageInfo.num));
+              }
+
+              // console.log(pointMatch)
+
               if (pointMatch) {
+                console.log(str)
                 tableEncountered = false;
                 currentPoint = pointMatch[0];
                 result[currentPoint] = "";

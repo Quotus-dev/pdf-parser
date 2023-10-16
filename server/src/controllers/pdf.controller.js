@@ -33,7 +33,6 @@ exports.extractDataAndUploadToDB = catchAsync(
 
       tables = await Table.create({
         data: {
-          id: clauses.id,
           ...tables
         }
       })

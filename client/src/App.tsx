@@ -37,21 +37,17 @@ function App() {
 
     fd.append("file", file);
 
-    const res = await axios.post(
-      "http://164.164.178.27:5050/api/v1/upload",
-      fd,
-      {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      }
-    );
+    const res = await axios.post("http://localhost:5050/api/v1/upload", fd, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
 
     // console.log(res.data?.data?.path);
 
     try {
       setLoading(true);
-      const data = await axios.post("http://164.164.178.27:5050/api/v1/pdf", {
+      const data = await axios.post("http://localhost:5050/api/v1/pdf", {
         fileUrl: res.data?.data?.path,
       });
       setLoading(false);
