@@ -39,6 +39,8 @@
     "pdf.js-extract": "^0.2.1",
     "pg": "^8.11.3",
     "pg-hstore": "^2.3.4",
-    "sequelize": "^6.33.0"
+    "sequelize": "^6.33.0",
+    "tesseract.js": "^5.0.2",
+    "wink-eng-lite-web-model": "^1.5.2"
   }
 }

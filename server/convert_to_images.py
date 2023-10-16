@@ -26,7 +26,7 @@ for page_number in range(pdf_document.page_count):
     image_filename = os.path.join(output_directory, f'page_{page_number}.png')
     
     for img_index, img in enumerate(page.get_images(full=True)):
-        print(img_index,f'page_{page_number}_img_{img_index}.png')
+        # print(img_index,f'page_{page_number}_img_{img_index}.png')
         xref = img[0]
         base_image = pdf_document.extract_image(xref)
         image_data = base_image["image"]
