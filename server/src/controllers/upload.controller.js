@@ -86,7 +86,7 @@ exports.handleUpload = catchAsync(async (req, res, next) => {
             file_names = fileNames.map((file)=>outputDir+'/'+file)
             console.log(file_names);
             // extractInformation
-            extractInformation(file_names)
+            // extractInformation(file_names)
 
           });
 
