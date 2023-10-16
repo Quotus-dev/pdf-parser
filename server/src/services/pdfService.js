@@ -3,15 +3,14 @@ const { PDFExtract, PDFExtractOptions } = require("pdf.js-extract");
 const fs = require("fs");
 const pdf_table_extractor = require("pdf-table-extractor");
 const { removeNewlinesFromTable } = require("../libs/utils");
-
+// const { exportImages } = require('pdf-export-images');
 // const pdf_table_extractor = require("pdf_table_extractor");
 
 class PdfTextExtractor {
-
   constructor() {
     this.pdfExtract = new PDFExtract();
-    this.clauseEnded = false
-    this.lastClausePage = ""
+    this.clauseEnded = false;
+    this.lastClausePage = "";
   }
 
   async validate(str, pageNumber) {
@@ -23,10 +22,9 @@ class PdfTextExtractor {
       const pointMatch = str.match(/^(a|A)[.)]$/);
 
       if (pointMatch) {
-        console.log({ pointMatch }, { pageNumber })
+        console.log({ pointMatch }, { pageNumber });
         status.validationFailed = true;
         status.message = "Validation Failed";
-
       } else {
         status.validationFailed = false;
         status.message = "Validation Successful";
@@ -151,7 +149,9 @@ class PdfTextExtractor {
         const validationResults = await Promise.all(validationPromises);
 
         // Check if any validation failed
-        const validationFailed = validationResults.some((res) => res.validationFailed);
+        const validationFailed = validationResults.some(
+          (res) => res.validationFailed
+        );
 
         // console.log({ validationFailed })
 
@@ -168,27 +168,33 @@ class PdfTextExtractor {
       });
     });
   }
-
+  async extractImagesFromPdf(filePath) {
+    // print(filePath,'extract_images')
+    console.log(filePath,'extract_images')
+    // exportImages("file.pdf", "output/dir")
+    //   .then((images) => console.log("Exported", images.length, "images"))
+    //   .catch(console.error);
+  }
   async extractTableFromPdf(filePath) {
-    const lastPage = this.lastClausePage
+    const lastPage = this.lastClausePage;
     return new Promise((resolve, reject) => {
       function success(result) {
         const data = result.pageTables.map((d) => {
-          const t = removeNewlinesFromTable(d.tables)
-          return { ...d, tables: t }
-        })
+          const t = removeNewlinesFromTable(d.tables);
+          return { ...d, tables: t };
+        });
 
-        let stopExtracting = false
+        let stopExtracting = false;
 
         const d = data.map((d) => {
           if (d.page === lastPage) {
-            stopExtracting = true
+            stopExtracting = true;
           }
 
           if (!stopExtracting) {
-            return d
+            return d;
           }
-        })
+        });
 
         resolve(d);
       }
