@@ -23,7 +23,7 @@ for page_number in range(pdf_document.page_count):
     
     image = page.get_pixmap(matrix=fitz.Matrix(100/100, 100/100),dpi=250)
     # image_filename = os.path.join(output_directory, f'page_{page}.png')
-    image_filename = os.path.join(output_directory, f'page_{page_number}.png')
+    image_filename = os.path.join(output_directory, f'page_{page_number+1}.png')
     
     for img_index, img in enumerate(page.get_images(full=True)):
         # print(img_index,f'page_{page_number}_img_{img_index}.png')

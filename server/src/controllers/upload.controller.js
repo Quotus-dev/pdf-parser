@@ -84,10 +84,16 @@ exports.handleUpload = catchAsync(async (req, res, next) => {
           
             console.log('Files in the folder:');
             file_names = fileNames.map((file)=>outputDir+'/'+file)
-            console.log(file_names);
+           
             // extractInformation
             // extractInformation(file_names)
-
+            // Sort the array based on the custom sorting function
+            file_names.sort((a,b)=>{
+              const pageA = parseInt(a.match(/page_(\d+)/)[1]);
+              const pageB = parseInt(b.match(/page_(\d+)/)[1]);
+              return pageA - pageB;
+            });
+            console.log(file_names);
           });
 
           resolve(stdout);
