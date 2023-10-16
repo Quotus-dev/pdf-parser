@@ -13,28 +13,27 @@ exports.handleUpload = catchAsync(async (req, res, next) => {
       console.error(`Error creating output directory: ${error}`);
     } else {
       console.log("Output directory created.");
-      // convertPdfToImages(req.file.path, outputDir);
       const pythonScript = "convert_to_images.py";
       handleScript(pythonScript, req.file.path, outputDir)
         .then((output) => {
-          // The Python script has completed
-          console.log("Python script completed with output:", output);
-          // You can add any further code you want to execute after completion here.
+          res.status(200).json({
+            status: "success",
+            error: false,
+            message: "Document uploaded successfully",
+            data: {
+              ...output,
+            },
+          });
         })
         .catch((error) => {
-          console.error("Error running Python script:", error);
+          res.status(400).json({
+            status: 'failed',
+            error: true,
+            message: {
+              ...error
+            }
+          })
         });
-      console.log(outputDir);
     }
   });
-
-  res.status(200).json({
-    status: "success",
-    error: false,
-    message: "Document uploaded successfully",
-    data: {
-      ...req.file,
-    },
-  });
-
 });

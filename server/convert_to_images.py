@@ -32,7 +32,7 @@ for page_number in range(pdf_document.page_count):
         image_data = base_image["image"]
 
         # Save extracted images
-        image = Image.open(io.BytesIO(image_data))
+        image_inside_page = Image.open(io.BytesIO(image_data))
         pdf_images_per_page_path = output_directory + '/' + str(page_number+1)
         if not os.path.exists(pdf_images_per_page_path):
         # If it doesn't exist, create the folder
@@ -42,7 +42,7 @@ for page_number in range(pdf_document.page_count):
             
             
         img_filename = os.path.join(pdf_images_per_page_path, f'page_{page_number+1}_img_{img_index}.png')
-        image.save(img_filename)
+        image_inside_page.save(img_filename)
          
 
         
