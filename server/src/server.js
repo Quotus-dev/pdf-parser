@@ -1,8 +1,8 @@
-const { MONGO_URI, PORT, app } = require(".");
+import {PORT, app } from "./index.js";
 
-const { sequelize } = require("./libs/db");
-const Clause = require("./models/data.model");
-const Table = require("./models/table.model");
+import { sequelize } from "./libs/db.js";
+import Clause from "./models/data.model.js";
+import Table from "./models/table.model.js";
 
 (async () => {
 

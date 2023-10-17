@@ -1,18 +1,21 @@
-const { PDFExtract, PDFExtractOptions } = require("pdf.js-extract");
+// import { PDFExtract, PDFExtractOptions } from "pdf.js-extract";
 
-const fs = require("fs");
-const pdf_table_extractor = require("pdf-table-extractor");
-const { removeNewlinesFromTable } = require("../libs/utils");
+import fs from "fs";
+// import pdf_table_extractor from "pdf-table-extractor";
+import { removeNewlinesFromTable } from "../libs/utils.js";
 
-const Tesseract = require("tesseract.js")
-const { createScheduler, createWorker } = require('tesseract.js');
+// To set the document object to undefined
+// document = undefined;
 
-const model = require('wink-eng-lite-web-model');
-const winkNLP = require('wink-nlp');
+// import Tesseract from "tesseract.js")
+import { createScheduler, createWorker } from 'tesseract.js';
+
+import model from 'wink-eng-lite-web-model';
+import winkNLP from 'wink-nlp';
 
 class PdfTextExtractor {
   constructor() {
-    this.pdfExtract = new PDFExtract();
+    // this.pdfExtract = new PDFExtract();
     this.scheduler = createScheduler()
     this.nlp = winkNLP(model, ["sbd", "pos"])
     this.result = {}
@@ -148,140 +151,140 @@ class PdfTextExtractor {
     return this.result
   }
 
-  async extractTextFromPdf(filePath) {
-    const buffer = fs.readFileSync(filePath);
-    const options = {};
+  // async extractTextFromPdf(filePath) {
+  //   const buffer = fs.readFileSync(filePath);
+  //   const options = {};
 
-    return new Promise(async (resolve, reject) => {
-      this.pdfExtract.extractBuffer(buffer, options, async (err, data) => {
-        if (err) return reject(err);
+  //   return new Promise(async (resolve, reject) => {
+  //     this.pdfExtract.extractBuffer(buffer, options, async (err, data) => {
+  //       if (err) return reject(err);
 
-        const result = {};
+  //       const result = {};
 
-        let currentPoint = "";
-        let stopMatching = false;
-        let tableEncountered = false;
-        let count = 1
-        let wordTable = ""
+  //       let currentPoint = "";
+  //       let stopMatching = false;
+  //       let tableEncountered = false;
+  //       let count = 1
+  //       let wordTable = ""
 
-        // Define an array to store validation promises
-        const validationPromises = [];
+  //       // Define an array to store validation promises
+  //       const validationPromises = [];
 
-        for (const page of data.pages) {
-          const pageContent = page.content;
+  //       for (const page of data.pages) {
+  //         const pageContent = page.content;
 
-          let isInsideDoubleHash = false;
-          let clauseStarted = false;
-          let cleanedText = "";
+  //         let isInsideDoubleHash = false;
+  //         let clauseStarted = false;
+  //         let cleanedText = "";
 
-          for (const item of pageContent) {
-            const { str } = item;
+  //         for (const item of pageContent) {
+  //           const { str } = item;
 
-            // Push the validation promise into the array
-            if (str.startsWith("T") && str.endsWith("T")) {
-              wordTable += str
-              count++
-            }
+  //           // Push the validation promise into the array
+  //           if (str.startsWith("T") && str.endsWith("T")) {
+  //             wordTable += str
+  //             count++
+  //           }
 
-            if (str.startsWith("ABLE") || str.endsWith("ABLE)") && count >= 2) {
-              wordTable += "ABLE"
-            }
+  //           if (str.startsWith("ABLE") || str.endsWith("ABLE)") && count >= 2) {
+  //             wordTable += "ABLE"
+  //           }
 
-            if (wordTable === "TABLE") {
-              tableEncountered = true
-              count = 1
-              wordTable = ""
-            }
+  //           if (wordTable === "TABLE") {
+  //             tableEncountered = true
+  //             count = 1
+  //             wordTable = ""
+  //           }
 
-            if (str.startsWith("INTRODUCTION")) {
-              clauseStarted = true;
-            }
+  //           if (str.startsWith("INTRODUCTION")) {
+  //             clauseStarted = true;
+  //           }
 
-            if (str.startsWith("**")) {
-              clauseStarted = false;
-              stopMatching = true;
-              currentPoint = "";
-              this.clauseEnded = true;
-              this.lastClausePage = page.pageInfo.num;
+  //           if (str.startsWith("**")) {
+  //             clauseStarted = false;
+  //             stopMatching = true;
+  //             currentPoint = "";
+  //             this.clauseEnded = true;
+  //             this.lastClausePage = page.pageInfo.num;
 
-              console.log({ lastpage: this.lastClausePage });
-            }
-            if (str.startsWith("**End of Clauses**")) {
-              clauseStarted = false;
-              stopMatching = true;
-              currentPoint = "";
-              this.clauseEnded = true;
-              this.lastClausePage = page.pageInfo.num;
+  //             console.log({ lastpage: this.lastClausePage });
+  //           }
+  //           if (str.startsWith("**End of Clauses**")) {
+  //             clauseStarted = false;
+  //             stopMatching = true;
+  //             currentPoint = "";
+  //             this.clauseEnded = true;
+  //             this.lastClausePage = page.pageInfo.num;
 
-              console.log({ lastpage: this.lastClausePage });
-            }
+  //             console.log({ lastpage: this.lastClausePage });
+  //           }
 
-            const tableMatch = str.match(/TABLE/g);
+  //           const tableMatch = str.match(/TABLE/g);
 
-            if (tableMatch) {
-              tableEncountered = true;
-            }
+  //           if (tableMatch) {
+  //             tableEncountered = true;
+  //           }
 
-            if (tableEncountered) {
-              // console.log(currentPoint)
-              delete result[currentPoint];
-              currentPoint = "";
-              cleanedText = "";
-            }
+  //           if (tableEncountered) {
+  //             // console.log(currentPoint)
+  //             delete result[currentPoint];
+  //             currentPoint = "";
+  //             cleanedText = "";
+  //           }
 
-            if (str.startsWith("#")) {
-              isInsideDoubleHash = true;
-              if (str.endsWith("##")) {
-                isInsideDoubleHash = false;
-              }
-            } else if (!isInsideDoubleHash && !stopMatching) {
-              const pointMatch = str.match(
-                /\b\d+(\.\d+)*\.$|\*\*End of Clauses\*\*/g
-              );
+  //           if (str.startsWith("#")) {
+  //             isInsideDoubleHash = true;
+  //             if (str.endsWith("##")) {
+  //               isInsideDoubleHash = false;
+  //             }
+  //           } else if (!isInsideDoubleHash && !stopMatching) {
+  //             const pointMatch = str.match(
+  //               /\b\d+(\.\d+)*\.$|\*\*End of Clauses\*\*/g
+  //             );
 
-              if (!tableEncountered && currentPoint) {
-                // console.log({ tableEncountered, currentPoint })
-                validationPromises.push(this.validate(str, page.pageInfo.num));
-              }
+  //             if (!tableEncountered && currentPoint) {
+  //               // console.log({ tableEncountered, currentPoint })
+  //               validationPromises.push(this.validate(str, page.pageInfo.num));
+  //             }
 
-              // console.log(pointMatch)
+  //             // console.log(pointMatch)
 
-              if (pointMatch) {
-                console.log(str)
-                tableEncountered = false;
-                currentPoint = pointMatch[0];
-                result[currentPoint] = "";
-              } else if (currentPoint) {
-                cleanedText = str.replace(/\s+/g, " ").trim();
-                result[currentPoint] += cleanedText + " ";
-              }
-            }
-          }
-        }
+  //             if (pointMatch) {
+  //               console.log(str)
+  //               tableEncountered = false;
+  //               currentPoint = pointMatch[0];
+  //               result[currentPoint] = "";
+  //             } else if (currentPoint) {
+  //               cleanedText = str.replace(/\s+/g, " ").trim();
+  //               result[currentPoint] += cleanedText + " ";
+  //             }
+  //           }
+  //         }
+  //       }
 
-        // Wait for all validation promises to resolve
-        const validationResults = await Promise.all(validationPromises);
+  //       // Wait for all validation promises to resolve
+  //       const validationResults = await Promise.all(validationPromises);
 
-        // Check if any validation failed
-        const validationFailed = validationResults.some(
-          (res) => res.validationFailed
-        );
+  //       // Check if any validation failed
+  //       const validationFailed = validationResults.some(
+  //         (res) => res.validationFailed
+  //       );
 
-        // console.log({ validationFailed })
+  //       // console.log({ validationFailed })
 
-        if (validationFailed) {
-          // Reject with an error message
-          reject({ validationFailed: true, message: "Validation Failed" });
-        } else {
-          for (const key in result) {
-            result[key] = result[key].trim();
-          }
+  //       if (validationFailed) {
+  //         // Reject with an error message
+  //         reject({ validationFailed: true, message: "Validation Failed" });
+  //       } else {
+  //         for (const key in result) {
+  //           result[key] = result[key].trim();
+  //         }
 
-          resolve(result);
-        }
-      });
-    });
-  }
+  //         resolve(result);
+  //       }
+  //     });
+  //   });
+  // }
   async extractImagesFromPdf(filePath) {
     // print(filePath,'extract_images')
     console.log(filePath, 'extract_images')
@@ -324,4 +327,4 @@ class PdfTextExtractor {
 
 const pdfTextExtractor = new PdfTextExtractor()
 
-module.exports = pdfTextExtractor;
+export default pdfTextExtractor;

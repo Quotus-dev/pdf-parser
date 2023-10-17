@@ -1,9 +1,9 @@
-const { Router } = require("express");
-const { extractDataAndUploadToDB, getPDFData, getSinglePdfData } = require("../controllers/pdf.controller");
+import { Router } from "express";
+import { extractDataAndUploadToDB, getPDFData, getSinglePdfData } from "../controllers/pdf.controller.js";
 
 const router = Router();
 
 router.route("/").get(getPDFData).post(extractDataAndUploadToDB);
 router.route("/:id").get(getSinglePdfData)
 
-module.exports = router
+export default router

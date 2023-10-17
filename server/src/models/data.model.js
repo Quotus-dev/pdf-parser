@@ -1,6 +1,6 @@
-const { DataTypes, Model, Sequelize } = require("sequelize");
+import { DataTypes, Model, Sequelize } from "sequelize";
 
-const { sequelize } = require("../libs/db");
+import { sequelize } from "../libs/db.js";
 
 class Clause extends Model { }
 
@@ -34,4 +34,4 @@ Clause.init(
 //   await Clause.sync();
 // })();
 
-module.exports = Clause;
+export default Clause

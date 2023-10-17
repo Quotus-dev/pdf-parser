@@ -1,20 +1,20 @@
-const express = require("express");
+import express from "express";
 
-const { AppError } = require("./libs/utils");
-const Clause = require("./models/data.model");
-const { config } = require("dotenv");
-const { errorHandler } = require("./middlewares/error.handler");
-const fs = require("fs");
-const morgan = require("morgan");
-const pdfRoutes = require("./routes/pdf.routes");
-const { upload } = require("./libs");
-const uploadRoutes = require("./routes/upload.routes");
-const { sequelize } = require("./libs/db");
-const cors = require("cors")
+import { AppError } from "./libs/utils.js";
+// import Clause from "./models/data.model";
+import { config } from "dotenv";
+import { errorHandler } from "./middlewares/error.handler.js";
+import fs from "fs";
+import morgan from "morgan";
+import pdfRoutes from "./routes/pdf.routes.js";
+// import { upload } from "./libs";
+import uploadRoutes from "./routes/upload.routes.js";
+// import { sequelize } from "./libs/db";
+import cors from "cors"
 
 config();
 
-const app = express();
+export const app = express();
 
 app.use(morgan("dev"));
 app.use(express.json());
@@ -32,10 +32,9 @@ app.all("*", (req, _res, next) => {
 
 app.use(errorHandler);
 
-const { PORT } = process.env
+// const { PORT } = process.env
 
-module.exports.PORT = PORT;
-module.exports.app = app
+export const {PORT} = process.env;
 
 // export {PORT}
 

@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "pdf-table-extractor": "^1.0.3"
+  }
+}

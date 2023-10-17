@@ -1,8 +1,8 @@
-const { exec } = require("child_process");
-const fs = require('fs');
-const path = require('path');
+import { exec } from "child_process";
+import fs from 'fs';
+import path from 'path';
 
-class AppError extends Error {
+export class AppError extends Error {
   constructor(message, statusCode) {
     super(message);
 
@@ -15,13 +15,13 @@ class AppError extends Error {
   }
 }
 
-const catchAsync = (fn) => {
+export const catchAsync = (fn) => {
   return (req, res, next) => {
     fn(req, res, next).catch(next);
   };
 };
 
-exports.removeNewlinesFromTable = (tables) => {
+export const removeNewlinesFromTable = (tables) => {
   // Iterate through the outer array (tables)
   for (let i = 0; i < tables.length; i++) {
     // Iterate through the inner subarray
@@ -33,7 +33,7 @@ exports.removeNewlinesFromTable = (tables) => {
   return tables;
 }
 
-exports.handleScript = (pythonScript, pdfFile, outputDir) => {
+export const handleScript = (pythonScript, pdfFile, outputDir) => {
   return new Promise((resolve, reject) => {
     exec(
       `python3 ${pythonScript} "${pdfFile}" "${outputDir}"`,
@@ -76,5 +76,5 @@ exports.handleScript = (pythonScript, pdfFile, outputDir) => {
   });
 }
 
-module.exports.AppError = AppError
-module.exports.catchAsync = catchAsync
+// module.exports.AppError = AppError
+// module.exports.catchAsync = catchAsync

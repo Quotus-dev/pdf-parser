@@ -3,7 +3,7 @@
 //   UniqueConstraintError,
 // } from "sequelize";
 
-const { AppError } = require("../libs/utils");
+import { AppError } from "../libs/utils.js";
 
 const sendDevError = (err, res) => {
   res.status(err.statusCode).json({
@@ -63,4 +63,4 @@ const errorHandler = (
   }
 };
 
-module.exports.errorHandler = errorHandler
+export  {errorHandler}

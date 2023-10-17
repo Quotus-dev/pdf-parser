@@ -1,12 +1,13 @@
-const { AppError, catchAsync } = require("../libs/utils");
-const { NextFunction, Request, Response } = require("express");
+import { AppError, catchAsync } from "../libs/utils.js";
+// import { NextFunction, Request, Response } from "express";
 
-const Clause = require("../models/data.model");
-const { Sequelize } = require("sequelize");
-const pdfTextExtractor = require("../services/pdfService");
-const Table = require("../models/table.model");
+import Clause from "../models/data.model.js";
+// import { Sequelize } from "sequelize";
+import pdfTextExtractor from "../services/pdfService.js";
+import Table from "../models/table.model.js";
 
-exports.extractDataAndUploadToDB = catchAsync(
+export const extractDataAndUploadToDB = catchAsync(
+  
   async (
     req,
     res,
@@ -18,7 +19,7 @@ exports.extractDataAndUploadToDB = catchAsync(
     let clauses;
 
     try {
-      // await pdfTextExtractor.initializeWorkers(50)
+      await pdfTextExtractor.initializeWorkers(50)
       const result = await pdfTextExtractor.processFiles(files)
 
       console.log(result)
@@ -44,6 +45,8 @@ exports.extractDataAndUploadToDB = catchAsync(
       await tables.save()
 
     } catch (err) {
+      console.log(err)
+      console.log(typeof document,'test_test_test')
       if (err.validationFailed) {
         return res.status(400).json({
           status: "failed",
@@ -71,7 +74,7 @@ exports.extractDataAndUploadToDB = catchAsync(
   }
 );
 
-exports.getPDFData = catchAsync(async (req, res, next) => {
+export const getPDFData = catchAsync(async (req, res, next) => {
 
   const data = await Clause.findAll()
 
@@ -86,7 +89,7 @@ exports.getPDFData = catchAsync(async (req, res, next) => {
   })
 })
 
-exports.getSinglePdfData = catchAsync(async (req, res, next) => {
+export const getSinglePdfData = catchAsync(async (req, res, next) => {
   const id = req.params.id
   const clauseQuery = req.query.clause
 
