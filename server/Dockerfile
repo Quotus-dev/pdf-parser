@@ -37,7 +37,7 @@ RUN pip install PyMuPDF
 
 
 # Install Python packages
-RUN pip install pymupdf
+# RUN pip install pymupdf
 
 RUN pip install pdf2image
 

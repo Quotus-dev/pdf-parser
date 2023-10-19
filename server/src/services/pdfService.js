@@ -3,10 +3,10 @@
 import fs from "fs";
 // import pdf_table_extractor from "pdf-table-extractor";
 import { removeNewlinesFromTable } from "../libs/utils.js";
-
+import axios from 'axios';
 // To set the document object to undefined
 // document = undefined;
-
+import FormData from 'form-data';
 // import Tesseract from "tesseract.js")
 import { createScheduler, createWorker } from 'tesseract.js';
 
@@ -78,7 +78,7 @@ class PdfTextExtractor {
 
     const text = await Promise.all(promises)
 
-    text.map((t) => {
+    text.map((t,i) => {
         const doc = this.nlp.readDoc(t)
         const tokens = doc.sentences().out()
 
@@ -90,8 +90,9 @@ class PdfTextExtractor {
 
             // console.log({ token })
 
-            if (token === "INTODUCTION") {
+            if (token === "INTRODUCTION") {
                 clauseStarted = true
+                console.log(i+1,'index45')
             }
 
             if (token.startsWith("##") && token.endsWith("#")) {
@@ -130,6 +131,12 @@ class PdfTextExtractor {
             } else if (tokenSeparated && !isInsideDoubleHash) {
                 for (const separatedToken of tokenSeparated) {
 
+
+                    if (separatedToken === "INTRODUCTION") {
+                        clauseStarted = true
+                        console.log(i+1,'index')
+                    }
+
                     if (!stopExtracting) {
                         const validationPoints = this.validate(separatedToken)
                         if (validationPoints) {
@@ -137,13 +144,15 @@ class PdfTextExtractor {
                         }
                     }
 
-                    const separetedTokenMatch = separatedToken.match(/^\d+(\.\d+)+(\.)+$|\\*End of Clauses\\*$/)
+                    // console.log({separatedToken})
 
+                    const separetedTokenMatch = separatedToken.match(/^\d+(\.\d+)+(\.)+$|\\*End of Clauses\\*$/)
                     if (separatedToken === "INTRODUCTION") {
                         clauseStarted = true
+                       
                     }
 
-                    if (separatedToken === "*End of Clauses*") {
+                    if (separatedToken === "**End of Clauses**" || separatedToken === "**End of Clauses™**") {
                         stopExtracting = true
                     }
 
@@ -177,7 +186,7 @@ class PdfTextExtractor {
     }
 
     
-    await scheduler.terminate();
+    await this.scheduler.terminate();
    return this.result
   }
 
@@ -323,6 +332,24 @@ class PdfTextExtractor {
     //   .catch(console.error);
   }
   async extractTableFromPdf(filePath) {
+
+    for (const file of filePath) {
+      const form = new FormData();
+      form.append("image", fs.createReadStream(file));
+      const apiUrl = "http://py-server:5000/extract-table";
+
+      try {
+        const response = await axios.post(apiUrl, form, {
+          headers: {
+            ...form.getHeaders(),
+          },
+        });
+        console.log("Response: table", response.data);
+      } catch (error) {
+        console.error("Error:", error);
+      }
+    }
+    
     // const lastPage = this.lastClausePage;
     // return new Promise((resolve, reject) => {
     //   function success(result) {
