@@ -138,8 +138,8 @@ def get_tables_data(path):
           row.append(ite)
       boxes.append(box['box'][1])
       table_data.append(row)
-
-  return table_data
+#   print(table_data,flush=True)
+  return table_data[::-1]
 
 
 @app.route('/extract-table', methods=['POST'])
