@@ -23,132 +23,162 @@ class PdfTextExtractor {
     this.lastClausePage = "";
   }
 
-  async validate(str, pageNumber) {
-    return new Promise((resolve, reject) => {
-      const status = {
-        validationFailed: true,
-        message: "",
-      };
-      const pointMatch = str.match(/^(a|A)[.)]$/);
+  validate(str) {
+    
+    return str.match(/^(?:(?:[aA]|[iI])\.|[aAiI]\))/)
 
-      if (pointMatch) {
-        console.log({ pointMatch }, { pageNumber });
-        status.validationFailed = true;
-        status.message = "Validation Failed";
-      } else {
-        status.validationFailed = false;
-        status.message = "Validation Successful";
-      }
-
-      resolve(status);
-    });
   }
 
   async initializeWorkers(numWorkers) {
     const workerGen = async () => {
-      const worker = await createWorker('eng', 1, {
-        logger: m => console.log(m),
-      });
+      const worker = await createWorker('eng', 1);
       this.scheduler.addWorker(worker);
     }
 
-    const resArr = Array(numWorkers);
-    for (let i = 0; i < numWorkers; i++) {
-      resArr[i] = workerGen();
-    }
+    const resArr = Array(numWorkers).fill(null).map(workerGen)
     await Promise.all(resArr);
+
   }
 
   async processFiles(files) {
 
-    const promises = files.map(async (file) => {
-      const { data: { text } } = await this.scheduler.addJob('recognize', file);
-      return text;
-    });
+    const tractProgress = (() => {
+      const startTime = performance.now()
+      let completedJobs = 0
+      const totalJobs = files.length
+      let processingTime = ''
+  
+      return () => {
+          completedJobs++
+          const progress = (completedJobs / totalJobs) * 100
+          console.log(`Progress: ${progress.toFixed(2)}% (${completedJobs}/${totalJobs} jobs completed)`)
+  
+          if (completedJobs === totalJobs) {
+              const endTime = performance.now()
+              processingTime = (endTime - startTime) / 1000;
+              processingTime = processingTime / 60
+              console.log('All jobs completed.', `It took ${processingTime} minute`);
+              // process.exit(0);
+          }
+      }
+  })()
 
-    const text = await Promise.all(promises);
+      const result = {}
+    let currentPoint = ''
+    let tableEncountered = false
+    let clauseStarted = false
+    let stopExtracting = false
+    const nonValidatatedPoints = []
+
+    const promises = files.map(async (file) => {
+        const { data: { text } } = await this.scheduler.addJob('recognize', file)
+        tractProgress()
+        return text
+    })
+
+    const text = await Promise.all(promises)
 
     text.map((t) => {
-      const doc = this.nlp.readDoc(t);
-      const tokens = doc.sentences().out();
+        const doc = this.nlp.readDoc(t)
+        const tokens = doc.sentences().out()
 
-      let cleanedText = '';
-      let currentPoint = '';
-      let tableEncountered = false;
-      let clauseStarted = false;
-      let stopExtracting = false;
+        let cleanedText = ''
+        let isInsideDoubleHash = false
 
-      tokens.forEach((token) => {
-        const tableMatch = token.match(/TABLE/g);
+        tokens.forEach((token) => {
+            const tableMatch = token.match(/TABLE/g)
 
-        if (token === "INTRODUCTION") {
-          clauseStarted = true;
-        }
+            // console.log({ token })
 
-        if (tableMatch) {
-          tableEncountered = true;
-        }
-
-        if (tableEncountered) {
-          delete this.result[currentPoint];
-          currentPoint = '';
-          cleanedText = '';
-        }
-
-        // console.log({ token })
-
-        const tokenSeparated = token.split("\n");
-
-        const pointMatch = token.match(/^(?:\d+(\.\d+)*\.$|\*\*End of Clauses\*\*)$/);
-
-        if (pointMatch && !stopExtracting) {
-          if (Object.hasOwnProperty(this.result, pointMatch[0])) {
-            cleanedText = pointMatch[0];
-            this.result[currentPoint] += cleanedText;
-          } else {
-            tableEncountered = false;
-            currentPoint = pointMatch[0];
-            this.result[currentPoint] = '';
-          }
-          // console.log(currentPoint)
-        } else if (tokenSeparated) {
-          for (const separatedToken of tokenSeparated) {
-            const separatedTokenMatch = separatedToken.match(/^\d+(\.\d+)+(\.)+$|\*\*End of Clauses\*\*$/);
-
-            if (separatedToken === "INTRODUCTION") {
-              clauseStarted = true;
+            if (token === "INTODUCTION") {
+                clauseStarted = true
             }
 
-            if (separatedToken === "**End of Clauses**") {
-              stopExtracting = true;
+            if (token.startsWith("##") && token.endsWith("#")) {
+                isInsideDoubleHash = !isInsideDoubleHash
             }
 
-            if (separatedTokenMatch && currentPoint != separatedTokenMatch[0] && !stopExtracting) {
-              tableEncountered = false;
-              currentPoint = separatedTokenMatch[0];
-              this.result[currentPoint] = '';
-            } else if (currentPoint && !stopExtracting) {
-              cleanedText = separatedToken.replace(/\s+/g, ' ').trim();
-              this.result[currentPoint] += cleanedText + ' ';
-
-              if (!clauseStarted) {
-                delete this.result[currentPoint];
-                currentPoint = '';
-                cleanedText = '';
-              }
+            if (tableMatch) {
+                tableEncountered = true
             }
-          }
-        }
-      });
 
-    });
+            if (tableEncountered) {
+                delete this.result[currentPoint]
+                currentPoint = ''
+                cleanedText = ''
+            }
 
-    for (const key in this.result) {
-      this.result[key] = this.result[key].trim();
+            // console.log({ token })
+
+            const tokenSeparated = token.split("\n")
+
+            // console.log(tokenSeparated)
+
+            const pointMatch = token.match(/^(?:\d+(\.\d+)\.$|\\End of Clauses\\*)$/)
+
+            if (pointMatch && !stopExtracting && !isInsideDoubleHash) {
+                if (Object.hasOwn(this.result, pointMatch[0])) {
+                    cleanedText = pointMatch[0]
+                    this.result[currentPoint] += cleanedText;
+                } else {
+                    tableEncountered = false
+                    currentPoint = pointMatch[0]
+
+                    this.result[currentPoint] = ''
+                }
+                // console.log(currentPoint)
+            } else if (tokenSeparated && !isInsideDoubleHash) {
+                for (const separatedToken of tokenSeparated) {
+
+                    if (!stopExtracting) {
+                        const validationPoints = this.validate(separatedToken)
+                        if (validationPoints) {
+                            nonValidatatedPoints.push(validationPoints[0])
+                        }
+                    }
+
+                    const separetedTokenMatch = separatedToken.match(/^\d+(\.\d+)+(\.)+$|\\*End of Clauses\\*$/)
+
+                    if (separatedToken === "INTRODUCTION") {
+                        clauseStarted = true
+                    }
+
+                    if (separatedToken === "*End of Clauses*") {
+                        stopExtracting = true
+                    }
+
+                    if (separetedTokenMatch && currentPoint != separetedTokenMatch[0] && !stopExtracting) {
+                        tableEncountered = false
+                        currentPoint = separetedTokenMatch[0]
+                        this.result[currentPoint] = ''
+                    } else if (currentPoint && !stopExtracting) {
+                        cleanedText = separatedToken.replace(/\s+/g, ' ').trim();
+                        this.result[currentPoint] += cleanedText + ' ';
+
+                        if (!clauseStarted) {
+                            delete this.result[currentPoint]
+                            currentPoint = ''
+                            cleanedText = ''
+                        }
+                    }
+                }
+
+            }
+        })
+
+    })
+
+    if (nonValidatatedPoints.length) {
+        throw new Error(`Validation error, we found some points which are not allowed i.e ${nonValidatatedPoints.join(",")}`)
     }
 
-    await this.scheduler.terminate();
-    return this.result
+    for (const key in this.result) {
+        this.result[key] = this.result[key].trim();
+    }
+
+    
+    await scheduler.terminate();
+   return this.result
   }
 
   // async extractTextFromPdf(filePath) {
@@ -293,35 +323,35 @@ class PdfTextExtractor {
     //   .catch(console.error);
   }
   async extractTableFromPdf(filePath) {
-    const lastPage = this.lastClausePage;
-    return new Promise((resolve, reject) => {
-      function success(result) {
-        const data = result.pageTables.map((d) => {
-          const t = removeNewlinesFromTable(d.tables);
-          return { ...d, tables: t };
-        });
+    // const lastPage = this.lastClausePage;
+    // return new Promise((resolve, reject) => {
+    //   function success(result) {
+    //     const data = result.pageTables.map((d) => {
+    //       const t = removeNewlinesFromTable(d.tables);
+    //       return { ...d, tables: t };
+    //     });
 
-        let stopExtracting = false;
+    //     let stopExtracting = false;
 
-        const d = data.map((d) => {
-          if (d.page === lastPage) {
-            stopExtracting = true;
-          }
+    //     const d = data.map((d) => {
+    //       if (d.page === lastPage) {
+    //         stopExtracting = true;
+    //       }
 
-          if (!stopExtracting) {
-            return d;
-          }
-        });
+    //       if (!stopExtracting) {
+    //         return d;
+    //       }
+    //     });
 
-        resolve(d);
-      }
+    //     resolve(d);
+    //   }
 
-      function error(err) {
-        reject(err);
-      }
+    //   function error(err) {
+    //     reject(err);
+    //   }
 
-      pdf_table_extractor(filePath, success, error);
-    });
+      // pdf_table_extractor(filePath, success, error);
+    // });
   }
 }
 

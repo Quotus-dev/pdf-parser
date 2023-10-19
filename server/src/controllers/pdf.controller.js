@@ -24,52 +24,52 @@ export const extractDataAndUploadToDB = catchAsync(
 
       console.log(result)
 
-      tables = await pdfTextExtractor.extractTableFromPdf(fileUrl)
-      tables = JSON.stringify(tables).replace(/\n/g, "")
-      tables = JSON.parse(tables)
+      // tables = await pdfTextExtractor.extractTableFromPdf(fileUrl)
+      // tables = JSON.stringify(tables).replace(/\n/g, "")
+      // tables = JSON.parse(tables)
 
-      clauses = await Clause.create({
-        data: {
-          ...res,
-        },
-      });
+      // clauses = await Clause.create({
+      //   data: {
+      //     ...res,
+      //   },
+      // });
 
-      await clauses.save();
+      // await clauses.save();
 
-      tables = await Table.create({
-        data: {
-          ...tables
-        }
-      })
+      // tables = await Table.create({
+      //   data: {
+      //     ...tables
+      //   }
+      // })
 
-      await tables.save()
+      // await tables.save()
 
     } catch (err) {
       console.log(err)
-      console.log(typeof document,'test_test_test')
-      if (err.validationFailed) {
-        return res.status(400).json({
-          status: "failed",
-          error: true,
-          message: err?.message || "Validation Failed",
-        });
-      } else {
+      // console.log(typeof document,'test_test_test')
+      // if (err.validationFailed) {
+      //   return res.status(400).json({
+      //     status: "failed",
+      //     error: true,
+      //     message: err?.message || "Validation Failed",
+      //   });
+      // } else {
         return res.status(500).json({
           status: "failed",
           error: true,
           message: err?.message || "Some error occured, please try again later",
         })
-      }
+      // }
     }
 
     res.status(200).json({
       status: "success",
       error: false,
       message: "Data extracted successfully",
-      data: {
-        clauses,
-        tables
-      },
+      // data: {
+      //   clauses,
+      //   tables
+      // },
     });
   }
 );
