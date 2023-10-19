@@ -58,6 +58,20 @@ services:
     volumes:
     - ./server:/app
 
+  pyserver:
+    build:
+      context: './python'
+      dockerfile: Dockerfile
+    ports:
+      - 5000:5000
+    container_name: py-server
+    networks:
+      - mjunction
+    depends_on:
+      - db
+    volumes:
+    - ./python:/app
+
 networks:
   mjunction:
 

@@ -1,6 +1,6 @@
-const { DataTypes, Model, Sequelize } = require("sequelize");
+import { DataTypes, Model, Sequelize } from "sequelize";
 
-const { sequelize } = require("../libs/db");
+import { sequelize } from "../libs/db.js";
 
 class Table extends Model { }
 
@@ -34,4 +34,5 @@ Table.init(
 //   await Clause.sync();
 // })();
 
-module.exports = Table;
+// module.exports = Table;
+export default Table

@@ -1,10 +1,10 @@
-const { catchAsync, handleScript } = require("../libs/utils");
-const { exec } = require("child_process");
+import { catchAsync, handleScript } from "../libs/utils.js";
+import { exec } from "child_process";
 
-const fs = require('fs');
-const path = require('path');
+// import fs from 'fs';
+// import path from 'path';
 
-exports.handleUpload = catchAsync(async (req, res, next) => {
+export const handleUpload = catchAsync(async (req, res, next) => {
   // print(req.file)
   const outputDir = `output/${Math.floor(Date.now() / 1000)}`;
 
@@ -17,6 +17,7 @@ exports.handleUpload = catchAsync(async (req, res, next) => {
       handleScript(pythonScript, req.file.path, outputDir)
         .then((output) => {
           console.log(`Output is: `, output)
+          
           res.status(200).json({
             status: "success",
             error: false,

@@ -1,4 +1,4 @@
-const { Sequelize } = require("sequelize");
+import { Sequelize } from "sequelize";
 
 const sequelize = new Sequelize(
   `postgres://${process.env.POSTGRES_USER}:${process.env.POSTGRES_PASSWORD}@${process.env.POSTGRES_HOST}:5432/${process.env.POSTGRES_DB}`, {
@@ -8,4 +8,4 @@ const sequelize = new Sequelize(
 
 // sequelize.sync({ force: true });
 
-module.exports.sequelize = sequelize
+export  {sequelize}
