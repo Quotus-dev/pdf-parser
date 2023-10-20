@@ -10,10 +10,11 @@ import cv2
 from pytesseract import Output, pytesseract
 from flask import Flask, request, jsonify
 import tempfile
-
+from flask_cors import CORS
 
 app = Flask(__name__)
 
+CORS(app, resources={r"/api/*": {"origins": "*"}})
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'png', 'jpg', 'jpeg'}
@@ -170,7 +171,7 @@ def extract_table():
                 cropped_image.close()
         if os.path.exists(image_path):
             os.remove(image_path)
-        return jsonify({"message": "Successfully extracted the table from the image","table":prediction_list})
+        return jsonify({"message": "Successfully extracted the table from the image","table":prediction_list,"page":image.filename})
 
     return jsonify({"error": "Invalid image file format"})
 

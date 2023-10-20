@@ -20,9 +20,11 @@ export const extractDataAndUploadToDB = catchAsync(
 
     try {
       await pdfTextExtractor.initializeWorkers(50)
-      const result = await pdfTextExtractor.processFiles(files)
+      // const result = await pdfTextExtractor.processFiles(files)
+      
+      const res = await pdfTextExtractor.extractTableFromPdf(files)
 
-      console.log(result)
+      // console.log(result)
 
       // tables = await pdfTextExtractor.extractTableFromPdf(fileUrl)
       // tables = JSON.stringify(tables).replace(/\n/g, "")
