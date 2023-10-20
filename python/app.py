@@ -155,6 +155,14 @@ def extract_table():
     # Check if the file is an allowed image type
     if image and allowed_file(image.filename):
         # Save the image to the server in the "uploads" directory
+        folder_path = "uploads"  # Replace with the desired folder name
+
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path)
+            print(f"Folder '{folder_path}' created.")
+        else:
+            print(f"Folder '{folder_path}' already exists.")
+        
         image_path = os.path.join("uploads", str(time.time())+'-'+image.filename)
         image.save(image_path)
         image_rgb = Image.open(image_path).convert("RGB")
