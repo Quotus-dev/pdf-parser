@@ -7,7 +7,7 @@ import pdfTextExtractor from "../services/pdfService.js";
 import Table from "../models/table.model.js";
 
 export const extractDataAndUploadToDB = catchAsync(
-  
+
   async (
     req,
     res,
@@ -54,11 +54,11 @@ export const extractDataAndUploadToDB = catchAsync(
       //     message: err?.message || "Validation Failed",
       //   });
       // } else {
-        return res.status(500).json({
-          status: "failed",
-          error: true,
-          message: err?.message || "Some error occured, please try again later",
-        })
+      return res.status(500).json({
+        status: "failed",
+        error: true,
+        message: err?.message || "Some error occured, please try again later",
+      })
       // }
     }
 
