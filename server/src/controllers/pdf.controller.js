@@ -20,11 +20,10 @@ export const extractDataAndUploadToDB = catchAsync(
 
     try {
       await pdfTextExtractor.initializeWorkers(50)
-      const result = await pdfTextExtractor.processFiles(files)
-      
-      const res = await pdfTextExtractor.extractTableFromPdf()
+      clauses = await pdfTextExtractor.processFiles(files)
 
-      // console.log(res,'test_test')
+      tables = await pdfTextExtractor.extractTableFromPdf()
+      // console.log(result, 'test_test')
 
       // tables = await pdfTextExtractor.extractTableFromPdf(fileUrl)
       // tables = JSON.stringify(tables).replace(/\n/g, "")
@@ -47,15 +46,6 @@ export const extractDataAndUploadToDB = catchAsync(
       // await tables.save()
 
     } catch (err) {
-      console.log(err)
-      // console.log(typeof document,'test_test_test')
-      // if (err.validationFailed) {
-      //   return res.status(400).json({
-      //     status: "failed",
-      //     error: true,
-      //     message: err?.message || "Validation Failed",
-      //   });
-      // } else {
       return res.status(500).json({
         status: "failed",
         error: true,
@@ -68,10 +58,10 @@ export const extractDataAndUploadToDB = catchAsync(
       status: "success",
       error: false,
       message: "Data extracted successfully",
-      // data: {
-      //   clauses,
-      //   tables
-      // },
+      data: {
+        clauses,
+        tables
+      },
     });
   }
 );
