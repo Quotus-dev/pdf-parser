@@ -210,7 +210,7 @@ class PdfTextExtractor {
     const tableData = [];
     try {
       // Split your API requests into batches
-      const batchSize = 5; // Number of API calls per batch
+      const batchSize = 15; // Number of API calls per batch
       const batches = [];
       for (let i = 0; i < this.ClausePages.length; i += batchSize) {
         const batch = this.ClausePages.slice(i, i + batchSize);
