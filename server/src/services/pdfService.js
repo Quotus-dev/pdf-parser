@@ -22,7 +22,7 @@ class PdfTextExtractor {
         return str.match(/^(?:(?:[aA]|[iI])\.|[aAiI]\))/);
     }
 
-    async initializeWorkers() {
+    async initializeWorkers(numWorkers) {
         try {
             const workerGen = async () => {
                 const worker = await createWorker("eng", 1);
@@ -32,7 +32,7 @@ class PdfTextExtractor {
                     throw new Error("Worker initialization failed");
                 }
             };
-            const resArr = Array(7).fill(null).map(workerGen);
+            const resArr = Array(numWorkers).fill(null).map(workerGen);
             await Promise.all(resArr);
         } catch (err) {
             throw new Error(err?.message || "Failed to initialize workers");
@@ -229,7 +229,7 @@ class PdfTextExtractor {
         const tableData = [];
         try {
             // Split your API requests into batches
-            const batchSize = 5; // Number of API calls per batch
+            const batchSize = 8; // Number of API calls per batch
             const batches = [];
             for (let i = 0; i < this.ClausePages.length; i += batchSize) {
                 const batch = this.ClausePages.slice(i, i + batchSize);
