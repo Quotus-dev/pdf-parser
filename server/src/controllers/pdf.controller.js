@@ -19,7 +19,7 @@ export const extractDataAndUploadToDB = catchAsync(
     let clauses;
 
     try {
-      await pdfTextExtractor.initializeWorkers(50)
+      await pdfTextExtractor.initializeWorkers(7)
       clauses = await pdfTextExtractor.processFiles(files)
 
       tables = await pdfTextExtractor.extractTableFromPdf()
@@ -29,13 +29,13 @@ export const extractDataAndUploadToDB = catchAsync(
       // tables = JSON.stringify(tables).replace(/\n/g, "")
       // tables = JSON.parse(tables)
 
-      // clauses = await Clause.create({
-      //   data: {
-      //     ...res,
-      //   },
-      // });
+      clauses = await Clause.create({
+        data: {
+          ...clauses,
+        },
+      });
 
-      // await clauses.save();
+      await clauses.save();
 
       // tables = await Table.create({
       //   data: {
@@ -49,7 +49,7 @@ export const extractDataAndUploadToDB = catchAsync(
       return res.status(500).json({
         status: "failed",
         error: true,
-        message: err?.message || "Some error occured, please try again later",
+        message: err?.message || "Some error occurred, please try again later",
       })
       // }
     }
