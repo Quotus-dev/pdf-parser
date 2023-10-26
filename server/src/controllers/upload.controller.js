@@ -14,6 +14,17 @@ export const handleUpload = catchAsync(async (req, res, next) => {
     } else {
       console.log("Output directory created.");
       const pythonScript = "convert_to_images.py";
+      if(req.file == undefined){
+       return res.status(404).json({
+          status: "error",
+          error: false,
+          message: "File not found.",
+          data: {
+            
+          },
+        });
+      }
+
       handleScript(pythonScript, req.file.path, outputDir)
         .then((output) => {
           const outputArray = Object.values(output)

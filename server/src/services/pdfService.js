@@ -109,6 +109,15 @@ class PdfTextExtractor {
                     }
 
                     if (tableEncountered) {
+                        if (clauseStarted && !stopExtracting) {
+                            const regex = /(output\/\d+\/)/;
+                            const match = files[0].match(regex);
+                            const extractedText = match[1];
+                            const page = `${extractedText}page_${i + 1}.png`;
+                            if (!this.ClausePages.includes(page)) {
+                                this.ClausePages.push(page);
+                            }
+                        }
                         delete this.result[currentPoint];
                         currentPoint = "";
                         cleanedText = "";
@@ -152,7 +161,7 @@ class PdfTextExtractor {
 
                             if (
                                 separatedToken === "**End of Clauses**" ||
-                                separatedToken === "**End of Clauses™**"
+                                separatedToken === "**End of Clauses™**" || separatedToken === "**End of Clauses™*"
                             ) {
                                 stopExtracting = true;
                             }
@@ -169,15 +178,15 @@ class PdfTextExtractor {
                                 cleanedText = separatedToken.replace(/\s+/g, " ").trim();
                                 this.result[currentPoint] += cleanedText + " ";
                             }
-                            if (clauseStarted) {
-                                const regex = /(output\/\d+\/)/;
-                                const match = files[0].match(regex);
-                                const extractedText = match[1];
-                                const page = `${extractedText}page_${i + 1}.png`;
-                                if (!this.ClausePages.includes(page)) {
-                                    this.ClausePages.push(page);
-                                }
-                            }
+                            // if (clauseStarted) {
+                            //     const regex = /(output\/\d+\/)/;
+                            //     const match = files[0].match(regex);
+                            //     const extractedText = match[1];
+                            //     const page = `${extractedText}page_${i + 1}.png`;
+                            //     if (!this.ClausePages.includes(page)) {
+                            //         this.ClausePages.push(page);
+                            //     }
+                            // }
                             if (!clauseStarted) {
                                 delete this.result[currentPoint];
                                 currentPoint = "";
@@ -200,6 +209,7 @@ class PdfTextExtractor {
                 this.result[key] = this.result[key].trim();
             }
 
+            console.log({ TablePages: this.ClausePages })
             await this.scheduler.terminate();
             return this.result;
         } catch (err) {
@@ -218,25 +228,53 @@ class PdfTextExtractor {
     async extractTableFromPdf() {
         const tableData = [];
         try {
-            const promises = this.ClausePages.map(async (file) => {
-                const form = new FormData();
-                form.append("image", fs.createReadStream(file));
-                const apiUrl = "http://py-server:5000/extract-table";
-                try {
-                    const response = await axios.post(apiUrl, form, {
-                        headers: {
-                            ...form.getHeaders(),
-                        },
-                    });
-                    return { data: response.data.table, page: file };
-                } catch (error) {
-                    console.error("Error:", error);
-                    return null; // or handle the error as needed
-                }
-            });
+            // Split your API requests into batches
+            const batchSize = 5; // Number of API calls per batch
+            const batches = [];
+            for (let i = 0; i < this.ClausePages.length; i += batchSize) {
+                const batch = this.ClausePages.slice(i, i + batchSize);
+                batches.push(batch);
+            }
 
-            const tableData = await Promise.all(promises);
-            return tableData;
+            // Function to make API calls for a batch
+            async function makeApiCallsForBatch(batch) {
+                const results = [];
+                for (const file of batch) {
+                    const form = new FormData();
+                    form.append("image", fs.createReadStream(file));
+                    const apiUrl = "http://py-server:5000/extract-table";
+                    try {
+                        const response = await axios.post(apiUrl, form, {
+                            headers: {
+                                ...form.getHeaders(),
+                            },
+                        });
+                        results.push({ data: response.data.table, page: file });
+                    } catch (error) {
+                        console.error("Error:", error);
+                        results.push(null); // or handle the error as needed
+                    }
+                }
+                return results;
+            }
+
+            // Execute API calls in batches using Promise.all
+            const allResults = [];
+
+            async function processBatches() {
+                for (const batch of batches) {
+                    const batchResults = await Promise.all(
+                        batch.map((file) => makeApiCallsForBatch([file]))
+                    );
+                    allResults.push(...batchResults);
+                }
+
+                // console.log("All API calls completed:", allResults);
+            }
+
+            // Call the function to start processing batches
+            await processBatches();
+            return allResults;
         } catch (error) {
             console.error("Error:", error);
         }

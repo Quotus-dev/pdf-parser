@@ -5,7 +5,7 @@ import Clause from "../models/data.model.js";
 // import { Sequelize } from "sequelize";
 import pdfTextExtractor from "../services/pdfService.js";
 import Table from "../models/table.model.js";
-
+import os from 'os';
 export const extractDataAndUploadToDB = catchAsync(
 
   async (
@@ -19,10 +19,11 @@ export const extractDataAndUploadToDB = catchAsync(
     let clauses;
 
     try {
-      await pdfTextExtractor.initializeWorkers(7)
+      const numCPUs = os.cpus().length;
+      await pdfTextExtractor.initializeWorkers(numCPUs - 1)
       clauses = await pdfTextExtractor.processFiles(files)
 
-      tables = await pdfTextExtractor.extractTableFromPdf()
+      tables = await pdfTextExtractor.extractTableFromPdf();
       // console.log(result, 'test_test')
 
       // tables = await pdfTextExtractor.extractTableFromPdf(fileUrl)
