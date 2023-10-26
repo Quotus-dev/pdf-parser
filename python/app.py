@@ -160,8 +160,7 @@ def extract_table():
         if not os.path.exists(folder_path):
             os.makedirs(folder_path)
             print(f"Folder '{folder_path}' created.")
-        else:
-            print(f"Folder '{folder_path}' already exists.")
+        
         
         image_path = os.path.join("uploads", str(time.time())+'-'+image.filename)
         image.save(image_path)
