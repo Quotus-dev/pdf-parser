@@ -46,26 +46,25 @@ class PdfTextExtractor {
             const totalJobs = files.length;
             let processingTime = "";
 
-            return () => {
-                completedJobs++;
-                const progress = (completedJobs / totalJobs) * 100;
-                console.log(
-                    `Progress: ${progress.toFixed(
-                        2
-                    )}% (${completedJobs}/${totalJobs} jobs completed)`
-                );
+            // Function to make API calls for return () => {
+            completedJobs++;
+            const progress = (completedJobs / totalJobs) * 100;
+            console.log(
+                `Progress: ${progress.toFixed(
+                    2
+                )}% (${completedJobs}/${totalJobs} jobs completed)`
+            );
 
-                if (completedJobs === totalJobs) {
-                    const endTime = performance.now();
-                    processingTime = (endTime - startTime) / 1000;
-                    processingTime = processingTime / 60;
-                    console.log(
-                        "All jobs completed.",
-                        `It took ${processingTime} minute`
-                    );
-                    // process.exit(0);
-                }
-            };
+            if (completedJobs === totalJobs) {
+                const endTime = performance.now();
+                processingTime = (endTime - startTime) / 1000;
+                processingTime = processingTime / 60;
+                console.log(
+                    "All jobs completed.",
+                    `It took ${processingTime} minute`
+                );
+                // process.exit(0);
+            }
         })();
 
         let currentPoint = "";
