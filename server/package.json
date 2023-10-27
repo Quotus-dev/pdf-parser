@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon -L src/server.js",
-    "start": "node src/server.js NODE_ENV=production",
+    "start": "node build/bundle.cjs NODE_ENV=production",
+    "build": "esbuild src/index.js --bundle --platform=node --outfile=build/bundle.cjs --minify --sourcemap",
     "debug": "ndb server.js"
   },
   "keywords": [],
@@ -28,6 +29,7 @@
   },
   "devDependencies": {
     "dotenv": "^16.3.1",
+    "esbuild": "^0.19.5",
     "nodemon": "^3.0.1"
   }
 }

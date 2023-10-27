@@ -22,6 +22,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cors())
 
 app.use(express.static("uploads"));
+app.use(express.static('build'))
 
 app.use("/api/v1/upload", uploadRoutes);
 app.use("/api/v1/pdf", pdfRoutes);
@@ -34,7 +35,7 @@ app.use(errorHandler);
 
 // const { PORT } = process.env
 
-export const {PORT} = process.env;
+export const { PORT } = process.env;
 
 // export {PORT}
 
