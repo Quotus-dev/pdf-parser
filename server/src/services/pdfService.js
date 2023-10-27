@@ -40,32 +40,32 @@ class PdfTextExtractor {
     }
 
     async processFiles(files) {
-        const tractProgress = (() => {
-            const startTime = performance.now();
-            let completedJobs = 0;
-            const totalJobs = files.length;
-            let processingTime = "";
+        // const trackProgress = (() => {
+        //     const startTime = performance.now();
+        //     let completedJobs = 0;
+        //     const totalJobs = files.length;
+        //     let processingTime = "";
 
-            // Function to make API calls for return () => {
-            completedJobs++;
-            const progress = (completedJobs / totalJobs) * 100;
-            console.log(
-                `Progress: ${progress.toFixed(
-                    2
-                )}% (${completedJobs}/${totalJobs} jobs completed)`
-            );
+        //     // Function to make API calls for return () => {
+        //     completedJobs++;
+        //     const progress = (completedJobs / totalJobs) * 100;
+        //     console.log(
+        //         `Progress: ${progress.toFixed(
+        //             2
+        //         )}% (${completedJobs}/${totalJobs} jobs completed)`
+        //     );
 
-            if (completedJobs === totalJobs) {
-                const endTime = performance.now();
-                processingTime = (endTime - startTime) / 1000;
-                processingTime = processingTime / 60;
-                console.log(
-                    "All jobs completed.",
-                    `It took ${processingTime} minute`
-                );
-                // process.exit(0);
-            }
-        })();
+        //     if (completedJobs === totalJobs) {
+        //         const endTime = performance.now();
+        //         processingTime = (endTime - startTime) / 1000;
+        //         processingTime = processingTime / 60;
+        //         console.log(
+        //             "All jobs completed.",
+        //             `It took ${processingTime} minute`
+        //         );
+        //         // process.exit(0);
+        //     }
+        // })();
 
         let currentPoint = "";
         let tableEncountered = false;
@@ -73,147 +73,147 @@ class PdfTextExtractor {
         let stopExtracting = false;
         const nonValidatedPoints = [];
 
-        try {
+        // try {
 
-            const promises = files.map(async (file) => {
-                const {
-                    data: { text },
-                } = await this.scheduler.addJob("recognize", file);
-                tractProgress();
-                return text;
-            });
+        const promises = files.map(async (file) => {
+            const {
+                data: { text },
+            } = await this.scheduler.addJob("recognize", file);
+            // trackProgress();
+            return text;
+        });
 
-            const text = await Promise.all(promises);
-            text.map((t, i) => {
-                const doc = this.nlp.readDoc(t);
-                const tokens = doc.sentences().out();
+        const text = await Promise.all(promises);
+        text.map((t, i) => {
+            const doc = this.nlp.readDoc(t);
+            const tokens = doc.sentences().out();
 
-                let cleanedText = "";
-                let isInsideDoubleHash = false;
+            let cleanedText = "";
+            let isInsideDoubleHash = false;
 
-                tokens.forEach((token) => {
-                    const tableMatch = token.match(/TABLE/g);
-                    const introductionMatch = token.match(/INTRODUCTION/g);
+            tokens.forEach((token) => {
+                const tableMatch = token.match(/TABLE/g);
+                const introductionMatch = token.match(/INTRODUCTION/g);
 
-                    if (introductionMatch) {
-                        clauseStarted = true;
-                    }
+                if (introductionMatch) {
+                    clauseStarted = true;
+                }
 
-                    if (token.startsWith("##") && token.endsWith("#")) {
-                        isInsideDoubleHash = !isInsideDoubleHash;
-                    }
+                if (token.startsWith("##") && token.endsWith("#")) {
+                    isInsideDoubleHash = !isInsideDoubleHash;
+                }
 
-                    if (tableMatch) {
-                        tableEncountered = true;
-                    }
+                if (tableMatch) {
+                    tableEncountered = true;
+                }
 
-                    if (tableEncountered) {
-                        if (clauseStarted && !stopExtracting) {
-                            const regex = /(output\/\d+\/)/;
-                            const match = files[0].match(regex);
-                            const extractedText = match[1];
-                            const page = `${extractedText}page_${i + 1}.png`;
-                            if (!this.ClausePages.includes(page)) {
-                                this.ClausePages.push(page);
-                            }
-                        }
-                        delete this.result[currentPoint];
-                        currentPoint = "";
-                        cleanedText = "";
-                    }
-
-                    // console.log({ token })
-
-                    const tokenSeparated = token.split("\n");
-
-                    // console.log(tokenSeparated)
-
-                    const pointMatch = token.match(
-                        /^(?:\d+(\.\d+)*\.$|\*\*End of Clauses\*\*)$/
-                    );
-
-                    if (pointMatch && !stopExtracting && !isInsideDoubleHash) {
-                        if (Object.hasOwn(this.result, pointMatch[0])) {
-                            cleanedText = pointMatch[0];
-                            this.result[currentPoint] += cleanedText;
-                        } else {
-                            tableEncountered = false;
-                            currentPoint = pointMatch[0];
-
-                            this.result[currentPoint] = "";
-                        }
-                        // console.log(currentPoint)
-                    } else if (tokenSeparated && !isInsideDoubleHash) {
-                        for (const separatedToken of tokenSeparated) {
-                            if (!stopExtracting && clauseStarted && !tableEncountered) {
-                                const validationPoints = this.validate(separatedToken);
-                                if (validationPoints) {
-                                    // console.log({ validationPoints, separatedToken })
-                                    nonValidatedPoints.push(validationPoints[0]);
-                                }
-                            }
-
-                            const separatedTokenMatch = separatedToken.match(/^\d+(\.\d+)+(\.)+$|\\End of Clauses\\$/)
-                            // const separatedTokenMatch = separatedToken.match(
-                            //     /^(?:\d+(\.\d+)*\.$|\*\*End of Clauses\*\*)$/
-                            // );
-
-                            if (
-                                separatedToken === "**End of Clauses**" ||
-                                separatedToken === "**End of Clauses™**" || separatedToken === "**End of Clauses™*"
-                            ) {
-                                stopExtracting = true;
-                            }
-
-                            if (
-                                separatedTokenMatch &&
-                                currentPoint != separatedTokenMatch[0] &&
-                                !stopExtracting
-                            ) {
-                                tableEncountered = false;
-                                currentPoint = separatedTokenMatch[0];
-                                this.result[currentPoint] = "";
-                            } else if (currentPoint && !stopExtracting) {
-                                cleanedText = separatedToken.replace(/\s+/g, " ").trim();
-                                this.result[currentPoint] += cleanedText + " ";
-                            }
-                            // if (clauseStarted) {
-                            //     const regex = /(output\/\d+\/)/;
-                            //     const match = files[0].match(regex);
-                            //     const extractedText = match[1];
-                            //     const page = `${extractedText}page_${i + 1}.png`;
-                            //     if (!this.ClausePages.includes(page)) {
-                            //         this.ClausePages.push(page);
-                            //     }
-                            // }
-                            if (!clauseStarted) {
-                                delete this.result[currentPoint];
-                                currentPoint = "";
-                                cleanedText = "";
-                            }
+                if (tableEncountered) {
+                    if (clauseStarted && !stopExtracting) {
+                        const regex = /(output\/\d+\/)/;
+                        const match = files[0].match(regex);
+                        const extractedText = match[1];
+                        const page = `${extractedText}page_${i + 1}.png`;
+                        if (!this.ClausePages.includes(page)) {
+                            this.ClausePages.push(page);
                         }
                     }
-                });
-            });
+                    delete this.result[currentPoint];
+                    currentPoint = "";
+                    cleanedText = "";
+                }
 
-            if (nonValidatedPoints.length) {
-                throw new Error(
-                    `Validation error, we found some points which are not allowed i.e ${nonValidatedPoints.join(
-                        ","
-                    )}`
+                // console.log({ token })
+
+                const tokenSeparated = token.split("\n");
+
+                // console.log(tokenSeparated)
+
+                const pointMatch = token.match(
+                    /^(?:\d+(\.\d+)*\.$|\*\*End of Clauses\*\*)$/
                 );
-            }
 
-            for (const key in this.result) {
-                this.result[key] = this.result[key].trim();
-            }
+                if (pointMatch && !stopExtracting && !isInsideDoubleHash) {
+                    if (Object.hasOwn(this.result, pointMatch[0])) {
+                        cleanedText = pointMatch[0];
+                        this.result[currentPoint] += cleanedText;
+                    } else {
+                        tableEncountered = false;
+                        currentPoint = pointMatch[0];
 
-            console.log({ TablePages: this.ClausePages })
-            await this.scheduler.terminate();
-            return this.result;
-        } catch (err) {
-            throw new Error(err)
+                        this.result[currentPoint] = "";
+                    }
+                    // console.log(currentPoint)
+                } else if (tokenSeparated && !isInsideDoubleHash) {
+                    for (const separatedToken of tokenSeparated) {
+                        if (!stopExtracting && clauseStarted && !tableEncountered) {
+                            const validationPoints = this.validate(separatedToken);
+                            if (validationPoints) {
+                                // console.log({ validationPoints, separatedToken })
+                                nonValidatedPoints.push(validationPoints[0]);
+                            }
+                        }
+
+                        const separatedTokenMatch = separatedToken.match(/^\d+(\.\d+)+(\.)+$|\\End of Clauses\\$/)
+                        // const separatedTokenMatch = separatedToken.match(
+                        //     /^(?:\d+(\.\d+)*\.$|\*\*End of Clauses\*\*)$/
+                        // );
+
+                        if (
+                            separatedToken === "**End of Clauses**" ||
+                            separatedToken === "**End of Clauses™**" || separatedToken === "**End of Clauses™*"
+                        ) {
+                            stopExtracting = true;
+                        }
+
+                        if (
+                            separatedTokenMatch &&
+                            currentPoint != separatedTokenMatch[0] &&
+                            !stopExtracting
+                        ) {
+                            tableEncountered = false;
+                            currentPoint = separatedTokenMatch[0];
+                            this.result[currentPoint] = "";
+                        } else if (currentPoint && !stopExtracting) {
+                            cleanedText = separatedToken.replace(/\s+/g, " ").trim();
+                            this.result[currentPoint] += cleanedText + " ";
+                        }
+                        // if (clauseStarted) {
+                        //     const regex = /(output\/\d+\/)/;
+                        //     const match = files[0].match(regex);
+                        //     const extractedText = match[1];
+                        //     const page = `${extractedText}page_${i + 1}.png`;
+                        //     if (!this.ClausePages.includes(page)) {
+                        //         this.ClausePages.push(page);
+                        //     }
+                        // }
+                        if (!clauseStarted) {
+                            delete this.result[currentPoint];
+                            currentPoint = "";
+                            cleanedText = "";
+                        }
+                    }
+                }
+            });
+        });
+
+        if (nonValidatedPoints.length) {
+            throw new Error(
+                `Validation error, we found some points which are not allowed i.e ${nonValidatedPoints.join(
+                    ","
+                )}`
+            );
         }
+
+        for (const key in this.result) {
+            this.result[key] = this.result[key].trim();
+        }
+
+        console.log({ TablePages: this.ClausePages })
+        await this.scheduler.terminate();
+        return this.result;
+        // } catch (err) {
+        //     throw new Error(err)
+        // }
 
     }
 
@@ -228,7 +228,7 @@ class PdfTextExtractor {
         const tableData = [];
         try {
             // Split your API requests into batches
-            const batchSize = 8; // Number of API calls per batch
+            const batchSize = 3; // Number of API calls per batch
             const batches = [];
             for (let i = 0; i < this.ClausePages.length; i += batchSize) {
                 const batch = this.ClausePages.slice(i, i + batchSize);
@@ -241,7 +241,7 @@ class PdfTextExtractor {
                 for (const file of batch) {
                     const form = new FormData();
                     form.append("image", fs.createReadStream(file));
-                    const apiUrl = "http://py-server:5000/extract-table";
+                    const apiUrl = "http://py-server:5151/extract-table";
                     try {
                         const response = await axios.post(apiUrl, form, {
                             headers: {

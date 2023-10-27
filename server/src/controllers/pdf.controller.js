@@ -47,6 +47,7 @@ export const extractDataAndUploadToDB = catchAsync(
       // await tables.save()
 
     } catch (err) {
+      console.log(err)
       return res.status(500).json({
         status: "failed",
         error: true,
