@@ -20,7 +20,7 @@ export const extractDataAndUploadToDB = catchAsync(
 
     try {
       const numCPUs = os.cpus().length;
-      await pdfTextExtractor.initializeWorkers(numCPUs)
+      await pdfTextExtractor.initializeWorkers(numCPUs - 1)
       clauses = await pdfTextExtractor.processFiles(files)
 
       tables = await pdfTextExtractor.extractTableFromPdf();
@@ -30,13 +30,13 @@ export const extractDataAndUploadToDB = catchAsync(
       // tables = JSON.stringify(tables).replace(/\n/g, "")
       // tables = JSON.parse(tables)
 
-      // clauses = await Clause.create({
-      //   data: {
-      //     ...res,
-      //   },
-      // });
+      clauses = await Clause.create({
+        data: {
+          ...clauses,
+        },
+      });
 
-      // await clauses.save();
+      await clauses.save();
 
       // tables = await Table.create({
       //   data: {
@@ -50,7 +50,7 @@ export const extractDataAndUploadToDB = catchAsync(
       return res.status(500).json({
         status: "failed",
         error: true,
-        message: err?.message || "Some error occured, please try again later",
+        message: err?.message || "Some error occurred, please try again later",
       })
       // }
     }

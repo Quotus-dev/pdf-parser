@@ -10,7 +10,7 @@ import {
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
 import { Label } from "./components/ui/label";
-import { Loader2Icon } from "lucide-react";
+import { Loader2, Loader2Icon } from "lucide-react";
 import ReactJson from "react-json-view";
 import axios from "axios";
 
@@ -21,12 +21,14 @@ function App() {
   const [clauses, setClauses] = useState<any>({});
   const [tables, setTables] = useState<any>({});
   const [err, setErr] = useState("");
+  const [uploaderLoading, setUploaderLoading] = useState(false);
 
   function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
     setFile(e.target.files![0]);
   }
 
   async function handleSubmit() {
+    setUploaderLoading(true);
     const fd = new FormData();
 
     if (!file) {
@@ -43,16 +45,18 @@ function App() {
       },
     });
 
-    // console.log(res.data?.data?.path);
+    setUploaderLoading(false);
 
     try {
       setLoading(true);
       const data = await axios.post("http://localhost:5050/api/v1/pdf", {
-        fileUrl: res.data?.data?.path,
+        files: res.data.data.outputArray,
       });
+
+      // console.log(data.data.data?.clauses?.data);
       setLoading(false);
-      setClauses(data.data?.data?.clauses);
-      setTables(data.data?.data?.tables);
+      setClauses(data.data.data?.clauses?.data);
+      // setTables(data.data?.data?.tables);
     } catch (err) {
       setErr("Something went wrong, please try again later");
       setLoading(false);
@@ -71,7 +75,16 @@ function App() {
               onChange={handleFileChange}
               accept="application/pdf"
             />
-            <Button type="submit" onClick={handleSubmit}>
+            <Button
+              type="submit"
+              disabled={uploaderLoading}
+              onClick={handleSubmit}
+            >
+              {uploaderLoading && (
+                <>
+                  <Loader2 height={20} width={20} className="animate-spin" />
+                </>
+              )}{" "}
               Upload
             </Button>
           </div>

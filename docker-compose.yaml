@@ -36,8 +36,13 @@ services:
     container_name: client
     networks:
       - mjunction
+    volumes:
+     - type: bind
+       source: ./client
+       target: /app
     depends_on:
       - db
+      - server
   server:
     build:
       context: './server'
