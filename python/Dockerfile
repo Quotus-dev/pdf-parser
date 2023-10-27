@@ -17,4 +17,13 @@ COPY . /app/
 
 ENV NAME World
 
-CMD ["python", "app.py"]
+# Run app.py when the container launches
+# CMD ["python", "app.py"]
+# CMD ["python", "-m", "cProfile", "app.py"]
+
+# CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:5000", "app:app"]
+
+# ENV FLASK_ENV=development
+
+# Conditionally run Gunicorn if FLASK_ENV is set to "production"
+CMD ["sh", "-c", "[ \"$FLASK_ENV\" = 'production' ] && exec gunicorn -w 4 -b 0.0.0.0:5151 app:app || exec python -m flask run --host=0.0.0.0 --port=5151"]

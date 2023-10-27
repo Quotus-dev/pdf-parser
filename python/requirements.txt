@@ -8,3 +8,4 @@ pytesseract==0.3.8
 img2table
 Werkzeug==2.0.2
 flask-cors
+gunicorn
