@@ -223,7 +223,7 @@ class PdfTextExtractor {
         for (const file of batch) {
           const form = new FormData();
           form.append("image", fs.createReadStream(file));
-          const apiUrl = "http://py-server:5000/extract-table";
+          const apiUrl = "http://py-server:5151/extract-table";
           try {
             const response = await axios.post(apiUrl, form, {
               headers: {
