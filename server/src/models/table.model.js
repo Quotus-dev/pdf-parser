@@ -1,16 +1,18 @@
 import { DataTypes, Model, Sequelize } from "sequelize";
 
 import { sequelize } from "../libs/db.js";
+import Clause from "./data.model.js";
 
 class Table extends Model { }
 
 Table.init(
     {
-        id: {
+        documentId: {
             type: DataTypes.UUID,
-            defaultValue: DataTypes.UUIDV4,
-            primaryKey: true,
-            allowNull: false,
+            references: {
+                model: 'clauses',
+                key: 'id'
+            }
         },
         data: {
             type: DataTypes.JSONB,
@@ -29,6 +31,8 @@ Table.init(
         timestamps: true,
     }
 );
+
+Table.hasOne(Clause)
 
 // (async () => {
 //   await Clause.sync();

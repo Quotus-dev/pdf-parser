@@ -30,19 +30,24 @@ export const extractDataAndUploadToDB = catchAsync(
       // tables = JSON.stringify(tables).replace(/\n/g, "")
       // tables = JSON.parse(tables)
 
+
+      tables = await Table.create({
+        data: {
+          ...tables
+        }
+      })
+
       clauses = await Clause.create({
         data: {
           ...clauses,
         },
       });
 
+      clauses.setDataValue("tableId", tables.id)
+      // tables.setDataValue("documentId", clauses.id)
+
       await clauses.save();
 
-      // tables = await Table.create({
-      //   data: {
-      //     ...tables
-      //   }
-      // })
 
       // await tables.save()
 

@@ -153,10 +153,27 @@ class PdfTextExtractor {
                             }
                         }
 
-                        const separatedTokenMatch = separatedToken.match(/^\d+(\.\d+)+(\.)+$|\\End of Clauses\\$/)
+                        let separatedTokenMatch;
+
+                        if (Object.keys(this.result).length === 1 && Object.values(this.result)[0] === 'INTRODUCTION ') {
+                            separatedTokenMatch = separatedToken.match(
+                                /^(?:\d+(\.\d+)*\.$|\*\*End of Clauses\*\*)$/
+                            );
+                        } else {
+                            separatedTokenMatch = separatedToken.match(/^\d+(\.\d+)+(\.)+$|\\End of Clauses\\$/)
+                        }
+
+                        // separatedTokenMatch = Object.keys(this.result).length < 2 ? separatedToken.match(/^\d+(\.\d+)+(\.)+$|\\End of Clauses\\$/) : separatedToken.match(
+                        //     /^(?:\d+(\.\d+)*\.$|\*\*End of Clauses\*\*)$/
+                        // );
+
+
+                        // console.log({ result: this.result })
                         // const separatedTokenMatch = separatedToken.match(
                         //     /^(?:\d+(\.\d+)*\.$|\*\*End of Clauses\*\*)$/
                         // );
+
+                        // console.log({ separatedTokenMatch })
 
                         if (
                             separatedToken === "**End of Clauses**" ||
