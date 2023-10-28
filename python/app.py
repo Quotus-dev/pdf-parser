@@ -43,7 +43,9 @@ def get_table_bounding_box(image):
 
         
         
+        # ocr_data.append({"word": extracted_text, "bounding_box": bounding_boxes,"table":True})
         ocr_data.append({"word": extracted_text, "bounding_box": bounding_boxes,"table":True})
+        
     
     return ocr_data
 
@@ -178,7 +180,16 @@ def extract_table():
                 cropped_image.close()
         if os.path.exists(image_path):
             os.remove(image_path)
-        return jsonify({"message": "Successfully extracted the table from the image","table":prediction_list,"page":image.filename})
+        
+        # cleaned_data = [[elem for elem in row if 'box' not in elem] for row in prediction_list[0]['table']]
+        # cleaned_data = [[{'text': elem['text']} for elem in row] for row in prediction_list[0]['table']]
+                # Check if prediction_list is not empty and has the expected structure
+        if prediction_list and len(prediction_list) > 0 and 'table' in prediction_list[0]:
+            cleaned_data = [[{'text': elem['text']} for elem in row] for row in prediction_list[0]['table']]
+        else:
+            cleaned_data = []
+        # print(cleaned_data,flush=True)
+        return jsonify({"message": "Successfully extracted the table from the image","table":cleaned_data,"page":image.filename})
 
     return jsonify({"error": "Invalid image file format"})
 
