@@ -12,9 +12,9 @@ from flask import Flask, request, jsonify
 import tempfile
 from flask_cors import CORS
 
-app = Flask(__name__)
+app = Flask(_name_)
 
-CORS(app, resources={r"/api/*": {"origins": "*"}})
+CORS(app, resources={r"/api/": {"origins": ""}})
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'png', 'jpg', 'jpeg'}
@@ -43,7 +43,9 @@ def get_table_bounding_box(image):
 
         
         
+        # ocr_data.append({"word": extracted_text, "bounding_box": bounding_boxes,"table":True})
         ocr_data.append({"word": extracted_text, "bounding_box": bounding_boxes,"table":True})
+        
     
     return ocr_data
 
@@ -178,7 +180,16 @@ def extract_table():
                 cropped_image.close()
         if os.path.exists(image_path):
             os.remove(image_path)
-        return jsonify({"message": "Successfully extracted the table from the image","table":prediction_list,"page":image.filename})
+        
+        # cleaned_data = [[elem for elem in row if 'box' not in elem] for row in prediction_list[0]['table']]
+        # cleaned_data = [[{'text': elem['text']} for elem in row] for row in prediction_list[0]['table']]
+                # Check if prediction_list is not empty and has the expected structure
+        if prediction_list and len(prediction_list) > 0 and 'table' in prediction_list[0]:
+            cleaned_data = [[{'text': elem['text']} for elem in row] for row in prediction_list[0]['table']]
+        else:
+            cleaned_data = []
+        # print(cleaned_data,flush=True)
+        return jsonify({"message": "Successfully extracted the table from the image","table":cleaned_data,"page":image.filename})
 
     return jsonify({"error": "Invalid image file format"})
 
@@ -186,5 +197,5 @@ def extract_table():
 
 
 
-if __name__ == '__main__':
+if _name_ == '_main_':
     app.run(host='0.0.0.0', port=5151)
