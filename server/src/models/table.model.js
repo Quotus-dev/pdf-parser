@@ -7,12 +7,11 @@ class Table extends Model { }
 
 Table.init(
     {
-        documentId: {
+        id: {
             type: DataTypes.UUID,
-            references: {
-                model: 'clauses',
-                key: 'id'
-            }
+            defaultValue: DataTypes.UUIDV4,
+            primaryKey: true,
+            allowNull: false,
         },
         data: {
             type: DataTypes.JSONB,
@@ -23,6 +22,9 @@ Table.init(
                 return this.setDataValue("data", JSON.stringify(value));
             },
         },
+        documentId: {
+            type: DataTypes.UUID
+        }
     },
     {
         sequelize,
@@ -32,11 +34,11 @@ Table.init(
     }
 );
 
-Table.hasOne(Clause)
+// Table.hasOne(Clause)
 
-// (async () => {
-//   await Clause.sync();
-// })();
+(async () => {
+    await Table.sync();
+})();
 
 // module.exports = Table;
 export default Table

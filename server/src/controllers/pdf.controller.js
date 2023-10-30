@@ -43,13 +43,18 @@ export const extractDataAndUploadToDB = catchAsync(
         },
       });
 
-      clauses.setDataValue("tableId", tables.id)
+      clauses.tableId = tables.id
+
+      console.log(tables.id)
+      console.log(clauses.id)
+
+      // clauses.setDataValue("TableId", tables.id)
       // tables.setDataValue("documentId", clauses.id)
 
       await clauses.save();
 
 
-      // await tables.save()
+      await tables.save()
 
     } catch (err) {
       console.log(err)
