@@ -21,6 +21,9 @@ Clause.init(
         return this.setDataValue("data", JSON.stringify(value));
       },
     },
+    tableId: {
+      type: DataTypes.UUID
+    }
   },
   {
     sequelize,
@@ -30,8 +33,8 @@ Clause.init(
   }
 );
 
-// (async () => {
-//   await Clause.sync();
-// })();
+(async () => {
+  await Clause.sync();
+})();
 
 export default Clause
