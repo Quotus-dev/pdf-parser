@@ -11,10 +11,12 @@ from pytesseract import Output, pytesseract
 from flask import Flask, request, jsonify
 import tempfile
 from flask_cors import CORS
-
-app = Flask(__name__)
-
-CORS(app, resources={r"/api/*": {"origins": "*"}})
+import json
+import pika
+import psycopg2
+import asyncio
+import websockets
+import cProfile
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'png', 'jpg', 'jpeg'}
@@ -145,29 +147,17 @@ def get_tables_data(path):
   return table_data[::-1]
 
 
-@app.route('/extract-table', methods=['POST'])
-def extract_table():
+# @app.route('/extract-table', methods=['POST'])
+def extract_table(tablePath):
     
-        # Check if the 'image' field is in the request
-    if 'image' not in request.files:
-        return jsonify({"error": "No image provided"})
 
-    image = request.files['image']
-
-    # Check if the file is an allowed image type
-    if image and allowed_file(image.filename):
-        # Save the image to the server in the "uploads" directory
-        folder_path = "uploads"  # Replace with the desired folder name
-
-        if not os.path.exists(folder_path):
-            os.makedirs(folder_path)
-            print(f"Folder '{folder_path}' created.")
+    Tables = []
+    for i, imagePath in enumerate(tablePath):
         
-        
-        image_path = os.path.join("uploads", str(time.time())+'-'+image.filename)
-        image.save(image_path)
-        image_rgb = Image.open(image_path).convert("RGB")
-        table_bounding = get_table_bounding_box(image_path)
+        if not os.path.exists(imagePath):
+            return jsonify({"error": "Path not exit"})
+        image_rgb = Image.open(imagePath).convert("RGB")
+        table_bounding = get_table_bounding_box(imagePath)
         prediction_list = []
         if(len(table_bounding) != 0):
             for i, table_bounding in enumerate(table_bounding):
@@ -178,24 +168,93 @@ def extract_table():
                 
                 prediction_list.append({"label":str('table'),"table":table_data,'text': table_bounding['word'],"box":[table_bounding['bounding_box']['left']-10,table_bounding['bounding_box']['top']-10,table_bounding['bounding_box']['right']+10,table_bounding['bounding_box']['bottom']+10]})
                 cropped_image.close()
-        if os.path.exists(image_path):
-            os.remove(image_path)
-        
-        # cleaned_data = [[elem for elem in row if 'box' not in elem] for row in prediction_list[0]['table']]
-        # cleaned_data = [[{'text': elem['text']} for elem in row] for row in prediction_list[0]['table']]
-                # Check if prediction_list is not empty and has the expected structure
+                
         if prediction_list and len(prediction_list) > 0 and 'table' in prediction_list[0]:
             cleaned_data = [[{'text': elem['text']} for elem in row] for row in prediction_list[0]['table']]
         else:
             cleaned_data = []
         # print(cleaned_data,flush=True)
-        return jsonify({"message": "Successfully extracted the table from the image","table":cleaned_data,"page":image.filename})
+        # return jsonify({"message": "Successfully extracted the table from the image","table":cleaned_data,"page":image.filename})
+        filename = os.path.basename(imagePath)
+        Tables.append({"table":cleaned_data,"page":filename})
+        
+    return {"message": "Successfully extracted the table from the image","table":Tables}
 
-    return jsonify({"error": "Invalid image file format"})
 
 
 
 
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5151)
+def saveToDb(data_to_insert,uuid):
+    db_params = {
+        'dbname': os.environ.get('POSTGRES_DB'),
+        'user': os.environ.get('POSTGRES_USER'),
+        'password': os.environ.get('POSTGRES_PASSWORD'),
+        'host': os.environ.get('POSTGRES_HOST'),  # Typically 'localhost' if the database is on the same machine
+        'port': os.environ.get('POSTGRES_PORT'),  # Default PostgreSQL port
+    }
+    
+    # Connect to the database
+    conn = psycopg2.connect(**db_params)
+    insert_query = 'INSERT INTO "Table" (id,data, "createdAt", "updatedAt","documentId") VALUES (%s,%s, %s, %s,null);'
+    
+    # Convert the JSON object to a JSON string
+    from datetime import datetime
+    created_at = updated_at = datetime.now()
+    # print(json.dumps(data_to_insert['table']), flush=True)
+    try:
+        cursor = conn.cursor()
+        query_with_values = cursor.mogrify(insert_query, (uuid,json.dumps(data_to_insert['table']),created_at,updated_at))
+        # print("Raw SQL Query:", query_with_values.decode('utf-8'))
+        cursor.execute(query_with_values)
+        # inserted_id = cursor.fetchone()[0]
+        conn.commit()
+    except psycopg2.Error as e:
+    # Handle the exception
+        if 'cursor' in locals():
+            cursor.close()
+        conn.close()
+        return {'error':str(e)}
+        # print(e,flush=True)
+        
+    finally:
+    # Close the cursor and database connection
+        if 'cursor' in locals():
+            cursor.close()
+    conn.close()
+    
+    return {'id':uuid}
+
+
+
+
+
+# Define a WebSocket handler function to handle incoming connections.
+async def websocket_handler(websocket, path):
+    try:
+        # Handle incoming WebSocket messages
+        # request_data = websocket.request_headers
+        async for message in websocket:
+            # print(message,flush=True)
+            parsed_data = json.loads(message)
+            # print(parsed_data,flush=True)
+            # cProfile only for development 
+            # profiler = cProfile.Profile()
+            # profiler.enable()
+            table = extract_table(parsed_data['tables'])
+            # profiler.disable()
+            # profiler.print_stats(sort='cumulative')
+            # # print(parsed_data,"table_id",flush=True)
+            response = saveToDb(table,parsed_data['uuid'])
+            # print(table_id,"table_id",flush=True)
+            await websocket.send(json.dumps(response))
+            await websocket.close()
+    except websockets.exceptions.ConnectionClosedError:
+        pass
+# Start the WebSocket server
+start_server = websockets.serve(websocket_handler, "0.0.0.0", 5151)
+
+# Create an event loop and run the server
+loop = asyncio.get_event_loop()
+loop.run_until_complete(start_server)
+loop.run_forever()

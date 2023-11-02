@@ -39,11 +39,15 @@ function App() {
 
     fd.append("file", file);
 
-    const res = await axios.post("http://localhost:5050/api/v1/upload", fd, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    });
+    const res = await axios.post(
+      "http://localhost:5050/api/v1/upload",
+      fd,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
 
     setUploaderLoading(false);
 
@@ -56,7 +60,8 @@ function App() {
       // console.log(data.data.data?.clauses?.data);
       setLoading(false);
       setClauses(data.data.data?.clauses?.data);
-      // setTables(data.data?.data?.tables);
+      // console.log(data.data?.data?.tables)
+      setTables(data.data?.data?.tables);
     } catch (err) {
       setErr("Something went wrong, please try again later");
       setLoading(false);
@@ -107,7 +112,15 @@ function App() {
               />
             </div>
           ) : null}
-          {Object.keys(tables).length ? <Table data={tables.data} /> : null}
+          {Object.keys(tables).length ? (
+            <ReactJson
+              src={tables}
+              style={{
+                height: "500px",
+                width: "500px",
+              }}
+            />
+          ) : null}
         </div>
       </div>
     </>

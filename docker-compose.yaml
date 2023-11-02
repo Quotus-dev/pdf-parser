@@ -27,6 +27,9 @@ services:
       - pgadmin-data:/var/lib/pgadmin
     depends_on:
       - db
+    logging:
+      driver: none
+
   client:
     build:
       context: './client'
@@ -62,14 +65,19 @@ services:
       - db
     volumes:
     - ./server:/app
-
+    - uploadPath:/app/output
   pyserver:
     build:
       context: './python'
       dockerfile: Dockerfile
     restart: always
     environment:
-      - FLASK_ENV=production
+      - FLASK_ENV=development
+      - POSTGRES_DB=mjunction
+      - POSTGRES_HOST=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_PASSWORD=admin
     ports:
       - 5151:5151
     container_name: py-server
@@ -79,11 +87,14 @@ services:
       - db
     volumes:
     - ./python:/app
+    - uploadPath:/app/output
 
 networks:
   mjunction:
+    driver: bridge
 
 volumes:
   data:
+  uploadPath:
   pgadmin-data:
     
