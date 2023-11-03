@@ -20,7 +20,7 @@ export const extractDataAndUploadToDB = catchAsync(
 
     try {
       const numCPUs = os.cpus().length;
-      await pdfTextExtractor.initializeWorkers(numCPUs - 1)
+      await pdfTextExtractor.initializeWorkers(50)
       clauses = await pdfTextExtractor.processFiles(files)
 
       tables = await pdfTextExtractor.extractTableFromPdf();
@@ -31,30 +31,30 @@ export const extractDataAndUploadToDB = catchAsync(
       // tables = JSON.parse(tables)
 
 
-      tables = await Table.create({
-        data: {
-          ...tables
-        }
-      })
+      // tables = await Table.create({
+      //   data: {
+      //     ...tables
+      //   }
+      // })
 
-      clauses = await Clause.create({
-        data: {
-          ...clauses,
-        },
-      });
+      // clauses = await Clause.create({
+      //   data: {
+      //     ...clauses,
+      //   },
+      // });
 
-      clauses.tableId = tables.id
+      // clauses.tableId = tables.id
 
-      console.log(tables.id)
-      console.log(clauses.id)
+      // console.log(tables.id)
+      // console.log(clauses.id)
 
       // clauses.setDataValue("TableId", tables.id)
       // tables.setDataValue("documentId", clauses.id)
 
-      await clauses.save();
+      // await clauses.save();
 
 
-      await tables.save()
+      // await tables.save()
 
     } catch (err) {
       console.log(err)
