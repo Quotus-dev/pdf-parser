@@ -234,7 +234,7 @@ async def websocket_handler(websocket, path):
             # print(message,flush=True)
             parsed_data = json.loads(message)
            
-            pool = Pool(processes=(cpu_count()/2))
+            pool = Pool(processes=round(cpu_count()/2))
             # Use the pool to map the processing function to image paths in parallel
             results = pool.map(extract_table, parsed_data['tables'])
             print('heare',flush=True)
