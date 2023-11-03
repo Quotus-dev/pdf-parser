@@ -17,6 +17,7 @@ import psycopg2
 import asyncio
 import websockets
 import cProfile
+from multiprocessing import Pool, cpu_count
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'png', 'jpg', 'jpeg'}
@@ -148,38 +149,33 @@ def get_tables_data(path):
 
 
 # @app.route('/extract-table', methods=['POST'])
-def extract_table(tablePath):
+def extract_table(imagePath):
     
 
-    Tables = []
-    for i, imagePath in enumerate(tablePath):
-        
-        if not os.path.exists(imagePath):
-            return jsonify({"error": "Path not exit"})
-        image_rgb = Image.open(imagePath).convert("RGB")
-        table_bounding = get_table_bounding_box(imagePath)
-        prediction_list = []
-        if(len(table_bounding) != 0):
-            for i, table_bounding in enumerate(table_bounding):
-                cropped_image = image_rgb.crop([table_bounding['bounding_box']['left']-10,table_bounding['bounding_box']['top']-10,table_bounding['bounding_box']['right']+10,table_bounding['bounding_box']['bottom']+10])
-                temp_file_name = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
-                cropped_image.save(temp_file_name.name)
-                table_data = get_tables_data(temp_file_name.name)
-                
-                prediction_list.append({"label":str('table'),"table":table_data,'text': table_bounding['word'],"box":[table_bounding['bounding_box']['left']-10,table_bounding['bounding_box']['top']-10,table_bounding['bounding_box']['right']+10,table_bounding['bounding_box']['bottom']+10]})
-                cropped_image.close()
-                
-        if prediction_list and len(prediction_list) > 0 and 'table' in prediction_list[0]:
-            cleaned_data = [[{'text': elem['text']} for elem in row] for row in prediction_list[0]['table']]
-        else:
-            cleaned_data = []
-        # print(cleaned_data,flush=True)
-        # return jsonify({"message": "Successfully extracted the table from the image","table":cleaned_data,"page":image.filename})
-        filename = os.path.basename(imagePath)
-        Tables.append({"table":cleaned_data,"page":filename})
-        
-    return {"message": "Successfully extracted the table from the image","table":Tables}
 
+    if not os.path.exists(imagePath):
+        return jsonify({"error": "Path not exit"})
+    image_rgb = Image.open(imagePath).convert("RGB")
+    table_bounding = get_table_bounding_box(imagePath)
+    prediction_list = []
+    if(len(table_bounding) != 0):
+        for i, table_bounding in enumerate(table_bounding):
+            cropped_image = image_rgb.crop([table_bounding['bounding_box']['left']-10,table_bounding['bounding_box']['top']-10,table_bounding['bounding_box']['right']+10,table_bounding['bounding_box']['bottom']+10])
+            temp_file_name = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+            cropped_image.save(temp_file_name.name)
+            table_data = get_tables_data(temp_file_name.name)
+            
+            prediction_list.append({"label":str('table'),"table":table_data,'text': table_bounding['word'],"box":[table_bounding['bounding_box']['left']-10,table_bounding['bounding_box']['top']-10,table_bounding['bounding_box']['right']+10,table_bounding['bounding_box']['bottom']+10]})
+            cropped_image.close()
+            
+    if prediction_list and len(prediction_list) > 0 and 'table' in prediction_list[0]:
+        cleaned_data = [[{'text': elem['text']} for elem in row] for row in prediction_list[0]['table']]
+    else:
+        cleaned_data = []
+    # print(cleaned_data,flush=True)
+    # return jsonify({"message": "Successfully extracted the table from the image","table":cleaned_data,"page":image.filename})
+    filename = os.path.basename(imagePath)
+    return {"table":cleaned_data,"page":filename}
 
 
 
@@ -204,7 +200,7 @@ def saveToDb(data_to_insert,uuid):
     # print(json.dumps(data_to_insert['table']), flush=True)
     try:
         cursor = conn.cursor()
-        query_with_values = cursor.mogrify(insert_query, (uuid,json.dumps(data_to_insert['table']),created_at,updated_at))
+        query_with_values = cursor.mogrify(insert_query, (uuid,json.dumps(data_to_insert),created_at,updated_at))
         # print("Raw SQL Query:", query_with_values.decode('utf-8'))
         cursor.execute(query_with_values)
         # inserted_id = cursor.fetchone()[0]
@@ -237,21 +233,28 @@ async def websocket_handler(websocket, path):
         async for message in websocket:
             # print(message,flush=True)
             parsed_data = json.loads(message)
-            # print(parsed_data,flush=True)
-            # cProfile only for development 
-            # profiler = cProfile.Profile()
-            # profiler.enable()
-            table = extract_table(parsed_data['tables'])
-            # profiler.disable()
-            # profiler.print_stats(sort='cumulative')
-            # # print(parsed_data,"table_id",flush=True)
-            response = saveToDb(table,parsed_data['uuid'])
+           
+            pool = Pool(processes=(cpu_count()/2))
+            # Use the pool to map the processing function to image paths in parallel
+            results = pool.map(extract_table, parsed_data['tables'])
+            print('heare',flush=True)
+            # Close the pool and wait for all processes to finish
+            pool.close()
+            pool.join()
+            
+            # Now, 'results' contains the processed data for each image
+            tables = results
+            
+            response = saveToDb(tables,parsed_data['uuid'])
             # print(table_id,"table_id",flush=True)
             await websocket.send(json.dumps(response))
             await websocket.close()
     except websockets.exceptions.ConnectionClosedError:
         pass
 # Start the WebSocket server
+
+print("Starting WebSocket server on 0.0.0.0:5151",flush=True)
+
 start_server = websockets.serve(websocket_handler, "0.0.0.0", 5151)
 
 # Create an event loop and run the server
