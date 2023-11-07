@@ -18,6 +18,51 @@ import asyncio
 import websockets
 import cProfile
 from multiprocessing import Pool, cpu_count
+import sys
+import fitz 
+from PIL import Image
+import glob
+
+
+
+def convert_pdf_to_image(input_dir,out_dir):
+    input_pdf = input_dir
+    output_directory = out_dir
+    # images = convert_from_path(input_pdf)
+    pdf_document = fitz.open(input_pdf)
+
+    for page_number in range(pdf_document.page_count):
+        # Get the page
+        page = pdf_document.load_page(page_number)        
+        image = page.get_pixmap(matrix=fitz.Matrix(100/100, 100/100),dpi=600)
+        # image_filename = os.path.join(output_directory, f'page_{page}.png')
+        image_filename = os.path.join(output_directory, f'page_{page_number+1}.png')
+        for img_index, img in enumerate(page.get_images(full=True)):
+            # print(img_index,f'page_{page_number}_img_{img_index}.png')
+            xref = img[0]
+            base_image = pdf_document.extract_image(xref)
+            image_data = base_image["image"]
+            # Save extracted images
+            image_inside_page = Image.open(io.BytesIO(image_data))
+            pdf_images_per_page_path = output_directory + '/' + str(page_number+1)
+            if not os.path.exists(pdf_images_per_page_path):
+            # If it doesn't exist, create the folder
+                os.makedirs(pdf_images_per_page_path)
+                # print(f"Folder '{pdf_images_per_page_path}' created.")
+            img_filename = os.path.join(pdf_images_per_page_path, f'page_{page_number+1}_img_{img_index}.png')
+            image_inside_page.save(img_filename)
+        image.save(image_filename)
+    pdf_document.close()
+    
+    image_extensions = ['jpg', 'jpeg', 'png', 'gif']
+
+    # Use glob to find all files with the specified extensions in the directory
+    image_files = []
+    for extension in image_extensions:
+        pattern = os.path.join(output_directory, f'*.{extension}')
+        image_files.extend(glob.glob(pattern))
+    return image_files
+    
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'png', 'jpg', 'jpeg'}
@@ -43,9 +88,6 @@ def get_table_bounding_box(image):
         image_array = np.array(cropped_image)
         gray = cv2.cvtColor(image_array, cv2.COLOR_BGR2GRAY)
         extracted_text = pytesseract.image_to_string(gray,config='— oem 3 — psm 10',lang='eng')
-
-        
-        
         # ocr_data.append({"word": extracted_text, "bounding_box": bounding_boxes,"table":True})
         ocr_data.append({"word": extracted_text, "bounding_box": bounding_boxes,"table":True})
         
@@ -233,19 +275,22 @@ async def websocket_handler(websocket, path):
         async for message in websocket:
             # print(message,flush=True)
             parsed_data = json.loads(message)
-           
-            pool = Pool(processes=round(cpu_count()/2))
-            # Use the pool to map the processing function to image paths in parallel
-            results = pool.map(extract_table, parsed_data['tables'])
-            print('heare',flush=True)
-            # Close the pool and wait for all processes to finish
-            pool.close()
-            pool.join()
             
-            # Now, 'results' contains the processed data for each image
-            tables = results
-            
-            response = saveToDb(tables,parsed_data['uuid'])
+
+            response = []
+            if(parsed_data['type'] == 'extract_table'):
+                pool = Pool(processes=round(cpu_count()/2))
+                # Use the pool to map the processing function to image paths in parallel
+                results = pool.map(extract_table, parsed_data['tables'])
+                pool.close()
+                pool.join()
+                
+                # Now, 'results' contains the processed data for each image
+                tables = results
+                
+                response = saveToDb(tables,parsed_data['uuid'])
+            else:
+                response =  convert_pdf_to_image(parsed_data['file_dir'],parsed_data['output_dir'])
             # print(table_id,"table_id",flush=True)
             await websocket.send(json.dumps(response))
             await websocket.close()

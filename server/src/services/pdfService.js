@@ -247,10 +247,8 @@ class PdfTextExtractor {
     async extractTableFromPdf() {
         const tableData = [];
         try {
-            
-
             const uuid = uuidv4();
-            const jsonResponse = await sendJsonRequest({'tables':this.ClausePages,'uuid':uuid});
+            const jsonResponse = await sendJsonRequest({'tables':this.ClausePages,'uuid':uuid,'type':'extract_table'});
             return jsonResponse;
         } catch (error) {
             console.error("Error:", error);

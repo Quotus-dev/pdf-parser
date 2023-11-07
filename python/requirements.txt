@@ -13,3 +13,5 @@ pika
 psycopg2
 asyncio
 websockets
+PyMuPDF
+# fitz
