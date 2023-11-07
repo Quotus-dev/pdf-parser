@@ -1,4 +1,4 @@
-import { AppError, catchAsync } from "../libs/utils.js";
+import { AppError, catchAsync, restart } from "../libs/utils.js";
 // import { NextFunction, Request, Response } from "express";
 
 import Clause from "../models/data.model.js";
@@ -6,6 +6,8 @@ import Clause from "../models/data.model.js";
 import pdfTextExtractor from "../services/pdfService.js";
 import Table from "../models/table.model.js";
 import os from 'os';
+import axios from "axios";
+
 export const extractDataAndUploadToDB = catchAsync(
 
   async (
@@ -18,9 +20,14 @@ export const extractDataAndUploadToDB = catchAsync(
     let tables;
     let clauses;
 
+    req.on('close', async function (err) {
+      // await pdfTextExtractor.terminateScheduler()
+    })
+
     try {
       const numCPUs = os.cpus().length;
-      await pdfTextExtractor.initializeWorkers(50)
+      // await pdfTextExtractor.terminateScheduler()
+      await pdfTextExtractor.initializeWorkers(10)
       clauses = await pdfTextExtractor.processFiles(files)
 
       tables = await pdfTextExtractor.extractTableFromPdf();
@@ -58,7 +65,7 @@ export const extractDataAndUploadToDB = catchAsync(
 
     } catch (err) {
       console.log(err)
-      return res.status(500).json({
+      res.status(500).json({
         status: "failed",
         error: true,
         message: err?.message || "Some error occurred, please try again later",
@@ -66,6 +73,7 @@ export const extractDataAndUploadToDB = catchAsync(
       // }
     }
 
+    // restart()
     res.status(200).json({
       status: "success",
       error: false,
@@ -75,6 +83,7 @@ export const extractDataAndUploadToDB = catchAsync(
         tables
       },
     });
+
   }
 );
 

@@ -27,26 +27,27 @@ services:
       - pgadmin-data:/var/lib/pgadmin
     depends_on:
       - db
-  client:
-    build:
-      context: './client'
-      dockerfile: Dockerfile
-    ports:
-      - 5173:5173
-    container_name: client
-    networks:
-      - mjunction
-    volumes:
-     - type: bind
-       source: ./client
-       target: /app
-    depends_on:
-      - db
-      - server
+  # client:
+  #   build:
+  #     context: './client'
+  #     dockerfile: Dockerfile
+  #   ports:
+  #     - 5173:5173
+  #   container_name: client
+  #   networks:
+  #     - mjunction
+  #   volumes:
+  #    - type: bind
+  #      source: ./client
+  #      target: /app
+  #   depends_on:
+  #     - db
+  #     - server
   server:
     build:
       context: './server'
       dockerfile: Dockerfile
+    restart: always
     ports:
       - 5050:5050
     container_name: server
