@@ -34,7 +34,7 @@ def convert_pdf_to_image(input_dir,out_dir):
     for page_number in range(pdf_document.page_count):
         # Get the page
         page = pdf_document.load_page(page_number)        
-        image = page.get_pixmap(matrix=fitz.Matrix(100/100, 100/100),dpi=600)
+        image = page.get_pixmap(matrix=fitz.Matrix(100/100, 100/100),dpi=700)
         # image_filename = os.path.join(output_directory, f'page_{page}.png')
         image_filename = os.path.join(output_directory, f'page_{page_number+1}.png')
         for img_index, img in enumerate(page.get_images(full=True)):
@@ -244,7 +244,7 @@ def saveToDb(data_to_insert,uuid):
     
     # Connect to the database
     conn = psycopg2.connect(**db_params)
-    insert_query = 'INSERT INTO "Table" (id,data, "createdAt", "updatedAt","documentId") VALUES (%s,%s, %s, %s,null);'
+    insert_query = 'INSERT INTO "Table" (id,data, "createdAt", "updatedAt") VALUES (%s,%s, %s, %s);'
     
     # Convert the JSON object to a JSON string
     from datetime import datetime

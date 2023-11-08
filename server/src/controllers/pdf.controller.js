@@ -16,9 +16,10 @@ export const extractDataAndUploadToDB = catchAsync(async (req, res, next) => {
 
   try {
     const numCPUs = os.cpus().length;
-    await pdfTextExtractor.initializeWorkers(numCPUs - 1);
+    // await pdfTextExtractor.initializeWorkers(numCPUs - 1);
     clauses = await pdfTextExtractor.processFiles(files);
     table = await pdfTextExtractor.extractTableFromPdf();
+    console.log(table, "-----------------")
     clauses = await Clause.create({
       data: {
         ...clauses,
@@ -35,6 +36,7 @@ export const extractDataAndUploadToDB = catchAsync(async (req, res, next) => {
     // tables.setDataValue("documentId", clauses.id)
     await clauses.save();
     tables = await Table.findByPk(table.id);
+    console.log(tables, "+++++++++++++++++++++")
     tables = tables.dataValues;
   } catch (err) {
     console.log(err);
