@@ -67,7 +67,6 @@ export const handleScript = (pythonScript, pdfFile, outputDir) => {
           resolve(fileNames);
           // extractInformation
           // extractInformation(file_names)
-
         });
 
         // resolve(stdout);

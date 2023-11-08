@@ -14,6 +14,9 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: admin
       POSTGRES_DB: mjunction
+    logging:
+      driver: none
+      
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: pgadmin
@@ -27,22 +30,25 @@ services:
       - pgadmin-data:/var/lib/pgadmin
     depends_on:
       - db
-  # client:
-  #   build:
-  #     context: './client'
-  #     dockerfile: Dockerfile
-  #   ports:
-  #     - 5173:5173
-  #   container_name: client
-  #   networks:
-  #     - mjunction
-  #   volumes:
-  #    - type: bind
-  #      source: ./client
-  #      target: /app
-  #   depends_on:
-  #     - db
-  #     - server
+    logging:
+      driver: none
+
+  client:
+    build:
+      context: './client'
+      dockerfile: Dockerfile
+    ports:
+      - 5173:5173
+    container_name: client
+    networks:
+      - mjunction
+    volumes:
+     - type: bind
+       source: ./client
+       target: /app
+    depends_on:
+      - db
+      - server
   server:
     build:
       context: './server'
@@ -63,6 +69,8 @@ services:
       - db
     volumes:
     - ./server:/app
+    - outPutPath:/app/output
+    - uploadPath:/app/uploads
 
   pyserver:
     build:
@@ -70,7 +78,12 @@ services:
       dockerfile: Dockerfile
     restart: always
     environment:
-      - FLASK_ENV=production
+      - FLASK_ENV=development
+      - POSTGRES_DB=mjunction
+      - POSTGRES_HOST=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_PASSWORD=admin
     ports:
       - 5151:5151
     container_name: py-server
@@ -80,11 +93,15 @@ services:
       - db
     volumes:
     - ./python:/app
-
+    - outPutPath:/app/output
+    - uploadPath:/app/uploads
 networks:
   mjunction:
+    driver: bridge
 
 volumes:
   data:
+  outPutPath:
+  uploadPath:
   pgadmin-data:
     

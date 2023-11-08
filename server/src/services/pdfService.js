@@ -6,6 +6,9 @@ import { createScheduler, createWorker } from "tesseract.js";
 
 import model from "wink-eng-lite-web-model";
 import winkNLP from "wink-nlp";
+// import amqp from "amqplib"
+import { v4 as uuidv4 } from 'uuid';
+import WebSocket from 'ws';
 
 class PdfTextExtractor {
     constructor() {
@@ -279,90 +282,51 @@ class PdfTextExtractor {
     }
     async extractTableFromPdf() {
         const tableData = [];
-        // console.log(this.ClausePages, "---------")
         try {
-            // Split your API requests into batches
-            const batchSize = 1; // Number of API calls per batch
-            const batches = [];
-            for (let i = 0; i < this.ClausePages.length; i += batchSize) {
-                const batch = this.ClausePages.slice(i, i + batchSize);
-                batches.push(batch);
-            }
-
-            // Function to make API calls for a batch
-            async function makeApiCallsForBatch(batch) {
-                // console.log({ insideAPiCall })
-                const results = [];
-                for (const file of batch) {
-                    const form = new FormData();
-                    form.append("image", fs.createReadStream(file));
-                    const apiUrl = "http://py-server:5151/extract-table";
-                    try {
-                        const response = await axios.post(apiUrl, form, {
-                            headers: {
-                                ...form.getHeaders(),
-                            },
-                        });
-                        results.push({ data: response.data.table, page: file });
-                    } catch (error) {
-                        console.error("Error:", error);
-                        results.push(null); // or handle the error as needed
-                    }
-                }
-                return results;
-            }
-
-            // Execute API calls in batches using Promise.all
-            const allResults = [];
-
-            async function processBatches() {
-                for (const batch of batches) {
-                    const batchResults = await Promise.all(
-                        batch.map((file) => makeApiCallsForBatch([file]))
-                    );
-                    allResults.push(...batchResults);
-                }
-
-                // console.log("All API calls completed:", allResults);
-            }
-
-            // Call the function to start processing batches
-            await processBatches();
-            return allResults;
+            const uuid = uuidv4();
+            const jsonResponse = await sendJsonRequest({ 'tables': this.ClausePages, 'uuid': uuid, 'type': 'extract_table' });
+            return jsonResponse;
         } catch (error) {
             console.error("Error:", error);
         }
-
-        // const lastPage = this.lastClausePage;
-        // return new Promise((resolve, reject) => {
-        //   function success(result) {
-        //     const data = result.pageTables.map((d) => {
-        //       const t = removeNewlinesFromTable(d.tables);
-        //       return { ...d, tables: t };
-        //     });
-
-        //     let stopExtracting = false;
-
-        //     const d = data.map((d) => {
-        //       if (d.page === lastPage) {
-        //         stopExtracting = true;
-        //       }
-
-        //       if (!stopExtracting) {
-        //         return d;
-        //       }
-        //     });
-
-        //     resolve(d);
-        //   }
-
-        //   function error(err) {
-        //     reject(err);
-        //   }
-
-        // pdf_table_extractor(filePath, success, error);
-        // });
     }
+}
+
+
+
+async function sendJsonRequest(request) {
+    return new Promise((resolve, reject) => {
+        const ws = new WebSocket('ws://py-server:5151');
+
+        ws.on('open', () => {
+            console.log('WebSocket connection opened.');
+            // Stringify the JSON request
+            const jsonRequest = JSON.stringify(request);
+            // Send the JSON request to the WebSocket server
+            ws.send(jsonRequest);
+        });
+
+        ws.on('message', (message) => {
+            console.log('Received message from WebSocket server:', message);
+            // Parse the received JSON response
+            const jsonResponse = JSON.parse(message);
+            // Resolve the promise with the received JSON response
+            resolve(jsonResponse);
+            // Close the WebSocket connection after receiving a response
+            ws.close();
+        });
+
+        ws.on('close', () => {
+            console.log('WebSocket connection closed.');
+        });
+
+        ws.on('error', (error) => {
+            console.error('WebSocket error:', error);
+
+            // Reject the promise if there's an error
+            reject(error);
+        });
+    });
 }
 
 const pdfTextExtractor = new PdfTextExtractor();

@@ -9,3 +9,9 @@ img2table
 Werkzeug==2.0.2
 flask-cors
 gunicorn
+pika
+psycopg2
+asyncio
+websockets
+PyMuPDF
+# fitz

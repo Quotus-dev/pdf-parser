@@ -4,6 +4,7 @@ import { extractDataAndUploadToDB, getPDFData, getSinglePdfData } from "../contr
 const router = Router();
 
 router.route("/").get(getPDFData).post(extractDataAndUploadToDB);
-router.route("/:id").get(getSinglePdfData)
+// router.route("/test").get(getTest)
+// router.route("/:id").get(getSinglePdfData)
 
 export default router
