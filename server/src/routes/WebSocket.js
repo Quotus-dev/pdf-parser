@@ -1,4 +1,5 @@
 import { WebSocketServer } from 'ws';
+import { extractDataAndUploadToDB } from '../controllers/pdf.controller';
 // import { PORT } from '../index.js';
 
 const setupWebSocketServer = (server) => {
@@ -10,6 +11,7 @@ const setupWebSocketServer = (server) => {
 
     ws.on('message', (message) => {
       console.log(`Received: ${message}`);
+      extractDataAndUploadToDB
 
     });
 
