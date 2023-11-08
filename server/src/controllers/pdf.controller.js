@@ -18,7 +18,7 @@ export const extractDataAndUploadToDB = catchAsync(async (req, res, next) => {
     const numCPUs = os.cpus().length;
     await pdfTextExtractor.initializeWorkers(numCPUs - 1);
     clauses = await pdfTextExtractor.processFiles(files);
-
+    table = await pdfTextExtractor.extractTableFromPdf();
     clauses = await Clause.create({
       data: {
         ...clauses,
