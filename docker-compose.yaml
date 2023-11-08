@@ -53,6 +53,7 @@ services:
     build:
       context: './server'
       dockerfile: Dockerfile
+    restart: always
     ports:
       - 5050:5050
     container_name: server

@@ -19,18 +19,6 @@ export const extractDataAndUploadToDB = catchAsync(async (req, res, next) => {
     await pdfTextExtractor.initializeWorkers(numCPUs - 1);
     clauses = await pdfTextExtractor.processFiles(files);
 
-    table = await pdfTextExtractor.extractTableFromPdf();
-    // console.log(result, 'test_test')
-
-    // tables = await pdfTextExtractor.extractTableFromPdf(fileUrl)
-    // tables = JSON.stringify(tables).replace(/\n/g, "")
-    // tables = JSON.parse(tables)
-
-    // tables = await Table.create({
-    //   data: {
-    //     ...tables
-    //   }
-    // })
     clauses = await Clause.create({
       data: {
         ...clauses,

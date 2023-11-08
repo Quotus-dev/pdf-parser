@@ -13,6 +13,8 @@ import { Label } from "./components/ui/label";
 import { Loader2, Loader2Icon } from "lucide-react";
 import ReactJson from "react-json-view";
 import axios from "axios";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 // import { useState } from 'react'
 function App() {
@@ -29,41 +31,46 @@ function App() {
 
   async function handleSubmit() {
     setUploaderLoading(true);
+    setClauses({});
+    setTables({});
     const fd = new FormData();
 
     if (!file) {
-      setErr("Please select a file before trying ...");
-      console.log(err);
+      toast.error("Please select a file before trying ...");
       return;
     }
 
     fd.append("file", file);
 
-    const res = await axios.post(
-      "http://localhost:5050/api/v1/upload",
-      fd,
-      {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      }
-    );
-
-    setUploaderLoading(false);
-
     try {
+      const res = await axios.post(
+        "http://164.164.178.27:5050/api/v1/upload",
+        fd,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      toast.success("Document uploaded successfully");
+
+      setUploaderLoading(false);
+
       setLoading(true);
-      const data = await axios.post("http://localhost:5050/api/v1/pdf", {
+
+      const data = await axios.post("http://164.164.178.27:5050/api/v1/pdf", {
         files: res.data.data.outputArray,
       });
 
       // console.log(data.data.data?.clauses?.data);
       setLoading(false);
       setClauses(data.data.data?.clauses?.data);
-      // console.log(data.data?.data?.tables)
-      setTables(data.data?.data?.tables);
+      setTables(data.data?.data?.tables?.data);
     } catch (err) {
-      setErr("Something went wrong, please try again later");
+      toast.error(
+        err?.message || "Something went wrong, please try again later"
+      );
       setLoading(false);
     }
   }
@@ -113,16 +120,19 @@ function App() {
             </div>
           ) : null}
           {Object.keys(tables).length ? (
-            <ReactJson
-              src={tables}
-              style={{
-                height: "500px",
-                width: "500px",
-              }}
-            />
+            <div className="grid border-2 min-h-[250px] rounded-md border-border place-content-center overflow-auto items-center gap-1.5">
+              <ReactJson
+                src={tables}
+                style={{
+                  height: "500px",
+                  width: "500px",
+                }}
+              />
+            </div>
           ) : null}
         </div>
       </div>
+      <ToastContainer />
     </>
   );
 }

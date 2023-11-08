@@ -2,6 +2,8 @@ FROM node:18-alpine
 
 WORKDIR /app
 
+# RUN npm install -g pm2
+
 # # Install Python and PyMuPDF
 # RUN apk add --update --no-cache python3 py3-pip
 
@@ -46,7 +48,7 @@ WORKDIR /app
 
 
 # COPY [, "./"]
-COPY ["convert_to_images.py","package.json", "./"]
+COPY ["package.json", "./"]
 RUN npm install
 
 

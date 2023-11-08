@@ -1,12 +1,10 @@
-import {PORT, app } from "./index.js";
+import { PORT, app } from "./index.js";
 
 import { sequelize } from "./libs/db.js";
 import Clause from "./models/data.model.js";
 import Table from "./models/table.model.js";
 
 (async () => {
-
-
   try {
     await sequelize.authenticate();
     const tableExists = await sequelize.getQueryInterface().showAllTables()
