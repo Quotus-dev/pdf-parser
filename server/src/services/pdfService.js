@@ -9,6 +9,7 @@ import winkNLP from "wink-nlp";
 // import amqp from "amqplib"
 import { v4 as uuidv4 } from 'uuid';
 import WebSocket from 'ws';
+import os from "os";
 
 class PdfTextExtractor {
     constructor() {
@@ -36,242 +37,239 @@ class PdfTextExtractor {
         return str.match(/^(?:(?:[aA]|[iI])\.|[aAiI]\))/);
     }
 
-    async initializeWorkers(numWorkers) {
-        try {
-            const workerGen = async () => {
-                const worker = await createWorker("eng", 1);
-                if (worker) {
-                    this.scheduler.addWorker(worker);
-                } else {
-                    throw new Error("Worker initialization failed");
-                }
-            };
-            const resArr = Array(numWorkers).fill(null).map(workerGen);
-            await Promise.all(resArr);
-        } catch (err) {
-            throw new Error(err?.message || "Failed to initialize workers");
-        }
-    }
-
-    cleanEveryOccurrenceIfClauseIsNotStartedYet() {
-        if (!this.clauseStarted) {
-            delete this.result[this.currentPoint];
-            this.currentPoint = "";
-            this.cleanedText = "";
-        }
-    }
-
-    handleCurrentPoint(pointMatch) {
-        if (Object.hasOwn(this.result, pointMatch[0])) {
-            this.cleanedText = pointMatch[0];
-            this.result[this.currentPoint] += this.cleanedText;
-        } else {
-            this.tableEncountered = false;
-            this.currentPoint = pointMatch[0];
-
-            this.result[this.currentPoint] = "";
-        }
-    }
-
-    handleTokensLevel2(tokenSeparated) {
-        for (const separatedToken of tokenSeparated) {
-
-            if (!this.stopExtracting && this.clauseStarted && !this.tableEncountered) {
-                const validationPoints = this.validate(separatedToken);
-                if (validationPoints) {
-                    this.nonValidatedPoints.push(validationPoints[0]);
-                }
-            }
-
-            let separatedTokenMatch;
-
-            if (Object.keys(this.result).length === 1 && Object.values(this.result)[0] === 'INTRODUCTION ') {
-                separatedTokenMatch = separatedToken.match(
-                    /^(?:\d+(\.\d+)*\.$|\*\*End of Clauses\*\*)$/
-                );
-            } else {
-                separatedTokenMatch = separatedToken.match(/^\d+(\.\d+)+(\.)+$|\\End of Clauses\\$/)
-            }
-
-            // console.log({ separatedTokenMatch: separatedToken.match(/^\d+(\.\d+)+(\.)+$|\\End of Clauses\\$/) })
-
-            if (
-                separatedToken === "**End of Clauses**" ||
-                separatedToken === "**End of Clauses™**" || separatedToken === "**End of Clauses™*" ||
-                separatedToken === "“*End of clauses™" || separatedToken === "**¥*% End of clauses ***"
-            ) {
-                this.stopExtracting = true;
-            }
-
-            if (separatedToken.startsWith("##") && separatedToken.endsWith("#")) {
-                this.ignoreToken = true
-            }
-
-            if (separatedToken.startsWith("H#") || separatedToken.startsWith("#H#") || separatedToken.startsWith("##")) {
-                this.isInsideDoubleHash = !this.isInsideDoubleHash;
-            }
-
-            if (separatedToken.endsWith("#i#") || separatedToken.endsWith("##") || separatedToken.endsWith("#H#")) {
-                this.isInsideDoubleHash = !this.isInsideDoubleHash;
-                this.ignoreToken = true
-            }
-
-            if (
-                separatedTokenMatch &&
-                this.currentPoint != separatedTokenMatch[0] &&
-                !this.stopExtracting
-            ) {
-                this.handleCurrentPoint(separatedTokenMatch)
-            } else if (this.currentPoint && !this.stopExtracting && !this.ignoreToken && !this.isInsideDoubleHash) {
-                this.cleanedText = separatedToken.replace(/\s+/g, " ").trim();
-                this.result[this.currentPoint] += this.cleanedText + " ";
-            }
-
-            this.ignoreToken = false
-            this.cleanEveryOccurrenceIfClauseIsNotStartedYet()
-        }
-    }
-
-    skipTable(token, index, chunk) {
-        const tableMatch = token.match(/TABLE/g);
-
-        if (tableMatch) {
-            this.tableEncountered = true;
-        }
-
-        if (this.tableEncountered) {
-            if (this.clauseStarted && !this.stopExtracting) {
-                for (const ch of chunk) {
-                    const regex = /(output\/\d+\/)/;
-                    const match = ch.match(regex);
-                    if (match) {
-                        const page = match.input
-                        if (!this.ClausePages.includes(page)) {
-                            this.ClausePages.push(page);
-                        }
-                    }
-                }
-            }
-            delete this.result[this.currentPoint];
-            this.currentPoint = "";
-            this.cleanedText = "";
-        }
-    }
-
-    handleTokens(tokens, index, chunk) {
-        tokens.forEach((token) => {
-
-            this.skipTable(token, index, chunk)
-
-            const introductionMatch = token.match(/INTRODUCTION/g);
-
-            if (introductionMatch) {
-                this.clauseStarted = true;
-            }
-
-            // console.log({ token })
-
-            // if ((token.startsWith("H#") || token.startsWith("#H#") || token.startsWith("##")) && (token.endsWith("#i#") || token.endsWith("##"))) {
-            //     // console.log("++++++++++++++++++++++++++", token)
-            //     this.ignoreToken = true
-            //     this.isInsideDoubleHash = !this.isInsideDoubleHash;
-            // }
-
-            // if (token.endsWith("#i#") || token.endsWith("##")) {
-            //     console.log("----------------------------------", token)
-            //     this.isInsideDoubleHash = !this.isInsideDoubleHash;
-            // }
-
-            const tokenSeparated = token.split("\n");
-
-            const pointMatch = token.match(
-                /^(?:\d+(\.\d+)*\.$|\*\*End of Clauses\*\*)$/
-            );
-
-            if (pointMatch && !this.stopExtracting && !this.isInsideDoubleHash) {
-                this.handleCurrentPoint(pointMatch)
-                // console.log(currentPoint)
-            } else if (tokenSeparated && !this.isInsideDoubleHash) {
-                this.handleTokensLevel2(tokenSeparated)
-            }
-
-            // this.ignoreToken = false
-        });
-    }
-
-    processText(text, chunk) {
-        text.map((t, index) => {
-            const doc = this.nlp.readDoc(t);
-            const tokens = doc.sentences().out();
-
-            this.handleTokens(tokens, index, chunk)
-        });
-    }
+    // async initializeWorkers(numWorkers) {
+    //     try {
+    //         const workerGen = async () => {
+    //             const worker = await createWorker("eng", 1);
+    //             if (worker) {
+    //                 this.scheduler.addWorker(worker);
+    //             } else {
+    //                 throw new Error("Worker initialization failed");
+    //             }
+    //         };
+    //         const resArr = Array(numWorkers).fill(null).map(workerGen);
+    //         await Promise.all(resArr);
+    //     } catch (err) {
+    //         throw new Error(err?.message || "Failed to initialize workers");
+    //     }
+    // }
 
     async processFiles(files) {
 
-        // this.files = files
+        const nlp = winkNLP(model, ["sbd", "pos"]);
+        const scheduler = createScheduler()
+        const numWorkers = os.cpus().length - 1;
 
-        const chunkSize = 4
+        const workerGen = async () => {
+            const worker = await createWorker('eng', 1);
+            scheduler.addWorker(worker);
+        }
+        // Initialize workers
+        const resArr = Array(numWorkers).fill(null).map(workerGen);
+        await Promise.all(resArr);
+
+        // Set up the results structure and other flags
+        const result = {};
+        let currentPoint = '';
+        let tableEncountered = false;
+        let clauseStarted = false;
+        let stopExtracting = false;
+        const nonValidatedPoints = [];
+        let progress = 0; // Track the number of files processed
+
+        const trackProgress = (() => {
+            const startTime = performance.now()
+            let completedJobs = 0
+            const totalJobs = files.length
+            let processingTime = ''
+
+            return () => {
+                completedJobs++
+                const progress = (completedJobs / totalJobs) * 100
+                console.log(`Progress: ${progress.toFixed(2)}% (${completedJobs}/${totalJobs} jobs completed)`)
+
+                if (completedJobs === totalJobs) {
+                    const endTime = performance.now()
+                    processingTime = (endTime - startTime) / 1000;
+                    processingTime = processingTime / 60
+                    console.log('All jobs completed.', `It took ${processingTime} minute`);
+                    // process.exit(0);
+                }
+            }
+        })()
+
+        const chunkSize = 5
         const chunkedFiles = []
 
         for (let i = 0; i < files.length; i += chunkSize) {
             chunkedFiles.push(files.slice(i, i + chunkSize))
         }
 
-        // console.log({ chunk1, chu })
-
         for (const chunk of chunkedFiles) {
             const promises = chunk.map(async (file) => {
-                const {
-                    data: { text },
-                } = await this.scheduler.addJob("recognize", file);
-                // trackProgress();
+                const { data: { text } } = await scheduler.addJob('recognize', file);
+                progress++;
+                trackProgress();
                 return text;
             });
 
-            // if (!this.stopExtracting) {
-            const text = await Promise.all(promises);
+            const texts = await Promise.all(promises);
 
-            console.log({ text })
+            texts.forEach((t) => {
+                const doc = nlp.readDoc(t);
+                const tokens = doc.sentences().out();
+                let cleanedText = '';
+                let isInsideDoubleHash = false;
+                let ignoreToken = false
 
-            this.processText(text, chunk)
-            // }
-            // console.log(this.result, "=======================")
+                tokens.forEach((token) => {
+
+                    const tableMatch = token.match(/TABLE/g);
+
+                    if (tableMatch) {
+                        tableEncountered = true;
+                    }
+
+                    if (tableEncountered) {
+                        if (clauseStarted && !stopExtracting) {
+                            for (const ch of chunk) {
+                                const regex = /(output\/\d+\/)/;
+                                const match = ch.match(regex);
+                                if (match) {
+                                    const page = match.input
+                                    if (!this.ClausePages.includes(page)) {
+                                        this.ClausePages.push(page);
+                                    }
+                                }
+                            }
+                        }
+                        delete result[currentPoint];
+                        currentPoint = "";
+                        cleanedText = "";
+                    }
+
+                    const introductionMatch = token.match(/INTRODUCTION/g);
+
+                    if (introductionMatch) {
+                        clauseStarted = true;
+                    }
+
+                    // console.log({ token })
+
+                    // if ((token.startsWith("H#") || token.startsWith("#H#") || token.startsWith("##")) && (token.endsWith("#i#") || token.endsWith("##"))) {
+                    //     // console.log("++++++++++++++++++++++++++", token)
+                    //     this.ignoreToken = true
+                    //     this.isInsideDoubleHash = !this.isInsideDoubleHash;
+                    // }
+
+                    // if (token.endsWith("#i#") || token.endsWith("##")) {
+                    //     console.log("----------------------------------", token)
+                    //     this.isInsideDoubleHash = !this.isInsideDoubleHash;
+                    // }
+
+                    const tokenSeparated = token.split("\n");
+
+                    const pointMatch = token.match(
+                        /^(?:\d+(\.\d+)*\.$|\*\*End of Clauses\*\*)$/
+                    );
+
+                    if (pointMatch && !stopExtracting && !isInsideDoubleHash) {
+                        if (Object.hasOwn(result, pointMatch[0])) {
+                            cleanedText = pointMatch[0];
+                            result[currentPoint] += cleanedText;
+                        } else {
+                            tableEncountered = false;
+                            currentPoint = pointMatch[0];
+
+                            result[currentPoint] = "";
+                        }
+                        // console.log(currentPoint)
+                    } else if (tokenSeparated && !isInsideDoubleHash) {
+                        for (const separatedToken of tokenSeparated) {
+
+                            if (!stopExtracting && clauseStarted && !tableEncountered) {
+                                const validationPoints = this.validate(separatedToken);
+                                if (validationPoints) {
+                                    nonValidatedPoints.push(validationPoints[0]);
+                                }
+                            }
+
+                            let separatedTokenMatch;
+
+                            if (Object.keys(result).length === 1 && Object.values(result)[0] === 'INTRODUCTION ') {
+                                separatedTokenMatch = separatedToken.match(
+                                    /^(?:\d+(\.\d+)*\.$|\*\*End of Clauses\*\*)$/
+                                );
+                            } else {
+                                separatedTokenMatch = separatedToken.match(/^\d+(\.\d+)+(\.)+$|\\End of Clauses\\$/)
+                            }
+
+                            // console.log({ separatedTokenMatch: separatedToken.match(/^\d+(\.\d+)+(\.)+$|\\End of Clauses\\$/) })
+
+                            if (
+                                separatedToken === "**End of Clauses**" ||
+                                separatedToken === "**End of Clauses™**" || separatedToken === "**End of Clauses™*" ||
+                                separatedToken === "“*End of clauses™" || separatedToken === "**¥*% End of clauses ***"
+                            ) {
+                                stopExtracting = true;
+                            }
+
+                            if (separatedToken.startsWith("##") && separatedToken.endsWith("#")) {
+                                ignoreToken = true
+                            }
+
+                            if (separatedToken.startsWith("H#") || separatedToken.startsWith("#H#") || separatedToken.startsWith("##")) {
+                                isInsideDoubleHash = !isInsideDoubleHash;
+                            }
+
+                            if (separatedToken.endsWith("#i#") || separatedToken.endsWith("##") || separatedToken.endsWith("#H#")) {
+                                isInsideDoubleHash = !isInsideDoubleHash;
+                                ignoreToken = true
+                            }
+
+                            if (
+                                separatedTokenMatch &&
+                                currentPoint != separatedTokenMatch[0] &&
+                                !stopExtracting
+                            ) {
+                                tableEncountered = false;
+                                currentPoint = separatedTokenMatch[0];
+                                result[currentPoint] = "";
+                            } else if (currentPoint && !stopExtracting && !ignoreToken && !isInsideDoubleHash) {
+                                cleanedText = separatedToken.replace(/\s+/g, " ").trim();
+                                result[currentPoint] += cleanedText + " ";
+                            }
+
+                            ignoreToken = false
+                            if (!clauseStarted) {
+                                delete result[currentPoint];
+                                currentPoint = "";
+                                cleanedText = "";
+                            }
+                        }
+                    }
+
+                    // this.ignoreToken = false
+                });
+
+                // At the end of processing each file:
+                if (nonValidatedPoints.length) {
+                    throw new Error(`Validation error, we found some points which are not allowed i.e ${nonValidatedPoints.join(",")}`);
+                }
+
+                for (const key in result) {
+                    result[key] = result[key].trim();
+                }
+            });
         }
 
-        // const promises = files.map(async (file) => {
-        //     const {
-        //         data: { text },
-        //     } = await this.scheduler.addJob("recognize", file);
-        //     // trackProgress();
-        //     return text;
-        // });
+        // Process each file
 
-        // const text = await Promise.all(promises);
+        // Process text from each file
 
-        // this.processText(text)
-
-        if (this.nonValidatedPoints.length) {
-            throw new Error(
-                `Validation error, we found some points which are not allowed i.e ${this.nonValidatedPoints.join(
-                    ","
-                )}`
-            );
-        }
-
-        for (const key in this.result) {
-            this.result[key] = this.result[key].trim();
-        }
-
-        console.log({ TablePages: this.ClausePages })
-        await this.scheduler.terminate();
-        return this.result;
-        // } catch (err) {
-        //     throw new Error(err)
-        // }
-
-    }
+        await scheduler.terminate();
+        return result
+    };
 
     async extractImagesFromPdf(filePath) {
         // print(filePath,'extract_images')
@@ -285,6 +283,7 @@ class PdfTextExtractor {
         try {
             const uuid = uuidv4();
             const jsonResponse = await sendJsonRequest({ 'tables': this.ClausePages, 'uuid': uuid, 'type': 'extract_table' });
+            console.log(jsonResponse, "JSONRESPONSE")
             return jsonResponse;
         } catch (error) {
             console.error("Error:", error);

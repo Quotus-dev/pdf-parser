@@ -2,7 +2,9 @@ import { ChangeEvent, useEffect, useMemo, useState } from "react";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "./components/ui/select";
@@ -15,15 +17,34 @@ import ReactJson from "react-json-view";
 import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { ScrollArea } from "./components/ui/scroll-area";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "./components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "./components/ui/dialog";
+import { Textarea } from "./components/ui/textarea";
 
 // import { useState } from 'react'
 function App() {
   const [file, setFile] = useState<File>();
   const [loading, setLoading] = useState<boolean>(false);
-  const [clauses, setClauses] = useState<any>({});
-  const [tables, setTables] = useState<any>({});
+  const [clauses, setClauses] = useState({});
+  const [clause, setClause] = useState<string>("");
+  const [tables, setTables] = useState({});
   const [err, setErr] = useState("");
   const [uploaderLoading, setUploaderLoading] = useState(false);
+  const [seletectedClauseValue, setSeletectedClauseValue] = useState("");
 
   function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
     setFile(e.target.files![0]);
@@ -43,15 +64,11 @@ function App() {
     fd.append("file", file);
 
     try {
-      const res = await axios.post(
-        "http://164.164.178.27:5050/api/v1/upload",
-        fd,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
+      const res = await axios.post("http://localhost:5050/api/v1/upload", fd, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
 
       toast.success("Document uploaded successfully");
 
@@ -59,7 +76,7 @@ function App() {
 
       setLoading(true);
 
-      const data = await axios.post("http://164.164.178.27:5050/api/v1/pdf", {
+      const data = await axios.post("http://localhost:5050/api/v1/pdf", {
         files: res.data.data.outputArray,
       });
 
@@ -74,6 +91,15 @@ function App() {
       setLoading(false);
     }
   }
+
+  useEffect(() => {
+    if (clause !== "" && clauses) {
+      const key = Object.keys(clauses).filter((key) => key === clause);
+      const value = key.map((k) => clauses[k])[0];
+
+      setSeletectedClauseValue(value);
+    }
+  }, [clause]);
 
   return (
     <>
@@ -109,14 +135,59 @@ function App() {
         )}
         <div className="flex items-center gap-4 justify-center">
           {Object.keys(clauses).length ? (
-            <div className="grid border-2 min-h-[250px] rounded-md border-border place-content-center overflow-auto items-center gap-1.5">
-              <ReactJson
+            <div className="grid border-2 min-h-[500px] w-[500px] rounded-md border-border place-content-center overflow-auto items-center gap-1.5">
+              <Select onValueChange={(value) => setClause(value)}>
+                <SelectTrigger className="w-[250px]">
+                  <SelectValue placeholder="Select the clause no." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectLabel>Clauses</SelectLabel>
+                    <ScrollArea className="h-[200px] w-[200px]">
+                      {Object.keys(clauses).map((key) => (
+                        <SelectItem value={key} key={key}>
+                          {key}
+                        </SelectItem>
+                      ))}
+                    </ScrollArea>
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+              <div>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>{clause}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ScrollArea className="h-[200px] w-[250px]">
+                      <p className="text-sm">{seletectedClauseValue}</p>
+                    </ScrollArea>
+                  </CardContent>
+                  <CardFooter>
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button>Edit</Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-[425px]">
+                        <DialogHeader>
+                          <DialogTitle>Edit clause {clause}</DialogTitle>
+                        </DialogHeader>
+                        <Textarea rows={10} value={seletectedClauseValue} />
+                        <DialogFooter>
+                          <Button type="submit">Save</Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                  </CardFooter>
+                </Card>
+              </div>
+              {/* <ReactJson
                 src={clauses}
                 style={{
                   height: "500px",
                   width: "500px",
                 }}
-              />
+              /> */}
             </div>
           ) : null}
           {Object.keys(tables).length ? (

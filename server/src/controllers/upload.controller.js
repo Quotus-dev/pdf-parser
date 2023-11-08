@@ -55,33 +55,33 @@ export const handleUpload = catchAsync(async (req, res, next) => {
 
 async function sendJsonRequest(request) {
   return new Promise((resolve, reject) => {
-      const ws = new WebSocket('ws://py-server:5151');
+    const ws = new WebSocket('ws://py-server:5151');
 
-      ws.on('open', () => {
-          console.log('WebSocket connection opened.');
-          // Stringify the JSON request
-          const jsonRequest = JSON.stringify(request);
-          // Send the JSON request to the WebSocket server
-          ws.send(jsonRequest);
-      });
+    ws.on('open', () => {
+      console.log('WebSocket connection opened.');
+      // Stringify the JSON request
+      const jsonRequest = JSON.stringify(request);
+      // Send the JSON request to the WebSocket server
+      ws.send(jsonRequest);
+    });
 
-      ws.on('message', (message) => {
-          console.log('Received message from WebSocket server:', message);
-          // Parse the received JSON response
-          const jsonResponse = JSON.parse(message);
-          // Resolve the promise with the received JSON response
-          resolve(jsonResponse);
-          // Close the WebSocket connection after receiving a response
-          ws.close();
-      });
+    ws.on('message', (message) => {
+      console.log('Received message from WebSocket server:', message);
+      // Parse the received JSON response
+      const jsonResponse = JSON.parse(message);
+      // Resolve the promise with the received JSON response
+      resolve(jsonResponse);
+      // Close the WebSocket connection after receiving a response
+      ws.close();
+    });
 
-      ws.on('close', () => {
-          console.log('WebSocket connection closed.');
-      });
+    ws.on('close', () => {
+      console.log('WebSocket connection closed.');
+    });
 
-      ws.on('error', (error) => {
-          console.error('WebSocket error:', error);
-          reject(error);
-      });
+    ws.on('error', (error) => {
+      console.error('WebSocket error:', error);
+      reject(error);
+    });
   });
 }

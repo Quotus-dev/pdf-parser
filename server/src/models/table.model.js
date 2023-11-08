@@ -22,9 +22,9 @@ Table.init(
                 return this.setDataValue("data", JSON.stringify(value));
             },
         },
-        documentId: {
-            type: DataTypes.UUID
-        }
+        // documentId: {
+        //     type: DataTypes.UUID
+        // }
     },
     {
         sequelize,
