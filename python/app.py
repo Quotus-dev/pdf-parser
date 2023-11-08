@@ -61,6 +61,19 @@ def convert_pdf_to_image(input_dir,out_dir):
     for extension in image_extensions:
         pattern = os.path.join(output_directory, f'*.{extension}')
         image_files.extend(glob.glob(pattern))
+    
+    
+    # Define a function to extract the page number from a file path
+    def get_page_number(file_path):
+        filename = os.path.basename(file_path)
+        parts = filename.split('_')
+        if len(parts) > 1:
+            page_number = parts[1].split('.')[0]
+            return int(page_number)
+        return 0
+
+    # Sort the list of image files based on the page number
+    image_files.sort(key=get_page_number)
     return image_files
     
 
@@ -192,9 +205,6 @@ def get_tables_data(path):
 
 # @app.route('/extract-table', methods=['POST'])
 def extract_table(imagePath):
-    
-
-
     if not os.path.exists(imagePath):
         return jsonify({"error": "Path not exit"})
     image_rgb = Image.open(imagePath).convert("RGB")
