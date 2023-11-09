@@ -7,9 +7,9 @@ import Clause from "../models/data.model.js";
 import pdfTextExtractor from "../services/pdfService.js";
 import Table from "../models/table.model.js";
 import os from "os";
-export const extractDataAndUploadToDB = catchAsync(async (req, res, next) => {
-  const files = req.body.files;
-  // let data;
+export const extractDataAndUploadToDB = catchAsync(async (files, ws) => {
+
+
   let table;
   let tables;
   let clauses;
@@ -17,9 +17,9 @@ export const extractDataAndUploadToDB = catchAsync(async (req, res, next) => {
   try {
     const numCPUs = os.cpus().length;
     // await pdfTextExtractor.initializeWorkers(numCPUs - 1);
-    clauses = await pdfTextExtractor.processFiles(files);
-    table = await pdfTextExtractor.extractTableFromPdf();
-    console.log(table, "-----------------")
+    clauses = await pdfTextExtractor.processFiles(files,ws);
+    table = await pdfTextExtractor.extractTableFromPdf(ws);
+
     clauses = await Clause.create({
       data: {
         ...clauses,
@@ -36,19 +36,23 @@ export const extractDataAndUploadToDB = catchAsync(async (req, res, next) => {
     // tables.setDataValue("documentId", clauses.id)
     await clauses.save();
     tables = await Table.findByPk(table.id);
-    console.log(tables, "+++++++++++++++++++++")
+    // console.log(tables, "+++++++++++++++++++++")
     tables = tables.dataValues;
   } catch (err) {
-    console.log(err);
-    return res.status(500).json({
+    // console.log(err);
+    const response =  {
       status: "failed",
       error: true,
       message: err?.message || "Some error occurred, please try again later",
-    });
+    };
+    ws.send(JSON.stringify(response));
+    ws.close();
+    return response;
     // }
   }
 
-  res.status(200).json({
+
+  const response =  {
     status: "success",
     error: false,
     message: "Data extracted successfully",
@@ -56,7 +60,10 @@ export const extractDataAndUploadToDB = catchAsync(async (req, res, next) => {
       clauses,
       tables,
     },
-  });
+  };
+  ws.send(JSON.stringify(response));
+  ws.close();
+  return response;
 });
 
 export const getPDFData = catchAsync(async (req, res, next) => {

@@ -30,6 +30,7 @@ class PdfTextExtractor {
         this.cleanedText = ""
         this.ignoreToken = false
 
+
         this.files = []
     }
 
@@ -54,7 +55,7 @@ class PdfTextExtractor {
     //     }
     // }
 
-    async processFiles(files) {
+    async processFiles(files,ws) {
 
         const nlp = winkNLP(model, ["sbd", "pos"]);
         const scheduler = createScheduler()
@@ -87,12 +88,15 @@ class PdfTextExtractor {
                 completedJobs++
                 const progress = (completedJobs / totalJobs) * 100
                 console.log(`Progress: ${progress.toFixed(2)}% (${completedJobs}/${totalJobs} jobs completed)`)
+                ws.send(JSON.stringify({type:'progress',message:`Progress: ${progress.toFixed(2)}% (${completedJobs}/${totalJobs} jobs completed)`,progress:progress.toFixed(2),task:{total:totalJobs,completed:completedJobs}}));
 
                 if (completedJobs === totalJobs) {
                     const endTime = performance.now()
                     processingTime = (endTime - startTime) / 1000;
                     processingTime = processingTime / 60
-                    console.log('All jobs completed.', `It took ${processingTime} minute`);
+                    // console.log('All Clause extraction jobs completed.', `It took ${processingTime} minute`);
+                    ws.send(JSON.stringify({"type": "task_completed","message": "All Clause extraction jobs completed.",time:processingTime,task:'clause'}));
+                   
                     // process.exit(0);
                 }
             }
@@ -278,12 +282,15 @@ class PdfTextExtractor {
         //   .then((images) => console.log("Exported", images.length, "images"))
         //   .catch(console.error);
     }
-    async extractTableFromPdf() {
+    async extractTableFromPdf(ws) {
         const tableData = [];
         try {
             const uuid = uuidv4();
-            const jsonResponse = await sendJsonRequest({ 'tables': this.ClausePages, 'uuid': uuid, 'type': 'extract_table' });
-            console.log(jsonResponse, "JSONRESPONSE")
+            // await ws.send('Table extraction started.')
+            await ws.send(JSON.stringify({"type": "new_task_started","message": "Table extraction.",task:'table'}));
+
+            const jsonResponse = await sendJsonRequest({ 'tables': this.ClausePages, 'uuid': uuid, 'type': 'extract_table' },ws);
+            // console.log(jsonResponse, "JSONRESPONSE")
             return jsonResponse;
         } catch (error) {
             console.error("Error:", error);
@@ -293,7 +300,7 @@ class PdfTextExtractor {
 
 
 
-async function sendJsonRequest(request) {
+async function sendJsonRequest(request,wsr) {
     return new Promise((resolve, reject) => {
         const ws = new WebSocket('ws://py-server:5151');
 
@@ -309,8 +316,14 @@ async function sendJsonRequest(request) {
             console.log('Received message from WebSocket server:', message);
             // Parse the received JSON response
             const jsonResponse = JSON.parse(message);
+
+            if(jsonResponse.type == 'response'){
+                resolve(jsonResponse.response);
+            }else{
+                wsr.send(JSON.stringify(jsonResponse))
+                console.log(jsonResponse.message)
+            }
             // Resolve the promise with the received JSON response
-            resolve(jsonResponse);
             // Close the WebSocket connection after receiving a response
             ws.close();
         });

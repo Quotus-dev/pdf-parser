@@ -22,7 +22,7 @@ import sys
 import fitz 
 from PIL import Image
 import glob
-
+# from tqdm import tqdm
 
 
 def convert_pdf_to_image(input_dir,out_dir):
@@ -288,13 +288,22 @@ async def websocket_handler(websocket, path):
             
 
             response = []
-            if(parsed_data['type'] == 'extract_table'):
-                pool = Pool(processes=round(cpu_count()/2))
-                # Use the pool to map the processing function to image paths in parallel
-                results = pool.map(extract_table, parsed_data['tables'])
-                pool.close()
-                pool.join()
-                
+            if(parsed_data['type'] == 'extract_table'):                
+                    # Calculate the number of processes (half of available CPU cores)
+                num_processes = max(1, round(cpu_count() / 2))
+
+                with Pool(processes=num_processes) as pool:
+                        results = []
+                        total_tasks = len(parsed_data['tables'])
+                        completed_tasks = 0
+
+                        for result in pool.imap(extract_table, parsed_data['tables']):
+                            results.append(result)
+                            completed_tasks += 1
+                            progress_percentage = (completed_tasks / total_tasks) * 100
+                            await websocket.send(json.dumps({'type':'progress','message':f"Progress: {progress_percentage:.2f}% ({completed_tasks} / {total_tasks} jobs completed)",'progress':f"{progress_percentage:.2f}",'task':{'total':total_tasks,'completed':completed_tasks}}))
+                            print(f"Progress: {progress_percentage:.2f}% ({completed_tasks} / {total_tasks} jobs completed)" , flush=True)
+                            
                 # Now, 'results' contains the processed data for each image
                 tables = results
                 
@@ -302,7 +311,7 @@ async def websocket_handler(websocket, path):
             else:
                 response =  convert_pdf_to_image(parsed_data['file_dir'],parsed_data['output_dir'])
             # print(table_id,"table_id",flush=True)
-            await websocket.send(json.dumps(response))
+            await websocket.send(json.dumps({'type':'response','response':response}))
             await websocket.close()
     except websockets.exceptions.ConnectionClosedError:
         pass

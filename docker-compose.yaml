@@ -49,6 +49,9 @@ services:
     depends_on:
       - db
       - server
+    logging:
+      driver: none
+      
   server:
     build:
       context: './server'
