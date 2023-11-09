@@ -46,6 +46,7 @@ const setupWebSocketServer = (server) => {
 
     ws.on("close", () => {
       console.log("Client disconnected");
+      hasProcessedValidMessage = false
     });
   });
 };
