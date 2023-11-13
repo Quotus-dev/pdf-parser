@@ -2,16 +2,25 @@ import { WebSocketServer } from "ws";
 import { extractDataAndUploadToDB } from "../controllers/pdf.controller.js";
 // import { extractDataAndUploadToDB } from '../controllers/pdf.controller';
 // import { PORT } from '../index.js';
+import http from 'http';
 
-const setupWebSocketServer = (server) => {
-  console.log(`🚀 Web Socket Server running ${server}`);
-  const wss = new WebSocketServer({ port: server });
-  let hasProcessedValidMessage = false; 
+// Set up a function to check and handle CORS for WebSocket connections
+// Set up a function to check and handle CORS for WebSocket connections
+const setupWebSocketServer = (port,app) => {
+  // console.log(`🚀 Web Socket Server running ${port}`);
+  const server = http.createServer(app);
+  const wss = new WebSocketServer({ server});
+  let hasProcessedValidMessage = false;
+
   wss.on("connection", (ws) => {
     console.log("Client connected");
+
     ws.on("message", async (message) => {
+      // console.log(`${message}`)
       if (hasProcessedValidMessage) {
-        ws.send(JSON.stringify({error:true,message:'Extraction is progress.'}));
+        ws.send(
+          JSON.stringify({ error: true, message: "Extraction is progress." })
+        );
         return;
       }
 
@@ -31,7 +40,7 @@ const setupWebSocketServer = (server) => {
       if (Array.isArray(pdfPages)) {
         if (!hasProcessedValidMessage) {
           const response = await extractDataAndUploadToDB(pdfPages, ws);
-          hasProcessedValidMessage = true
+          hasProcessedValidMessage = true;
         }
       } else {
         const response = {
@@ -46,8 +55,11 @@ const setupWebSocketServer = (server) => {
 
     ws.on("close", () => {
       console.log("Client disconnected");
-      hasProcessedValidMessage = false
+      hasProcessedValidMessage = false;
     });
+  });
+  server.listen(port, () => {
+    console.log(`Server is running on port ${port}`);
   });
 };
 

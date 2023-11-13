@@ -1,5 +1,8 @@
 {
   "dependencies": {
-    "pdf-table-extractor": "^1.0.3"
+    "@mui/material": "^5.14.17",
+    "@mui/styled-engine-sc": "^6.0.0-alpha.5",
+    "pdf-table-extractor": "^1.0.3",
+    "styled-components": "^6.1.1"
   }
 }
