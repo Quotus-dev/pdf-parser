@@ -1,4 +1,4 @@
-import { AppError, catchAsync } from "../libs/utils.js";
+import { AppError, catchAsync, removeNewlines } from "../libs/utils.js";
 // import { NextFunction, Request, Response } from "express";
 // const amqp = require('amqplib');
 
@@ -7,6 +7,7 @@ import Clause from "../models/data.model.js";
 import pdfTextExtractor from "../services/pdfService.js";
 import Table from "../models/table.model.js";
 import os from "os";
+
 export const extractDataAndUploadToDB = catchAsync(async (req, res, next) => {
   const files = req.body.files;
   // let data;
@@ -15,11 +16,8 @@ export const extractDataAndUploadToDB = catchAsync(async (req, res, next) => {
   let clauses;
 
   try {
-    const numCPUs = os.cpus().length;
-    // await pdfTextExtractor.initializeWorkers(numCPUs - 1);
     clauses = await pdfTextExtractor.processFiles(files);
     table = await pdfTextExtractor.extractTableFromPdf();
-    console.log(table, "-----------------")
     clauses = await Clause.create({
       data: {
         ...clauses,
@@ -27,16 +25,8 @@ export const extractDataAndUploadToDB = catchAsync(async (req, res, next) => {
       tableId: table.id,
     });
 
-    // clauses.tableId = tables.id
-
-    // console.log(tables.id)
-    // console.log(clauses.id)
-
-    // clauses.setDataValue("TableId", tables.id)
-    // tables.setDataValue("documentId", clauses.id)
     await clauses.save();
     tables = await Table.findByPk(table.id);
-    console.log(tables, "+++++++++++++++++++++")
     tables = tables.dataValues;
   } catch (err) {
     console.log(err);
@@ -60,6 +50,8 @@ export const extractDataAndUploadToDB = catchAsync(async (req, res, next) => {
 });
 
 export const getPDFData = catchAsync(async (req, res, next) => {
+
+
   const data = await Clause.findAll();
 
   const tables = await Table.findAll();
@@ -73,17 +65,33 @@ export const getPDFData = catchAsync(async (req, res, next) => {
   });
 });
 
+export const deleteAllData = catchAsync(async (req, res, next) => {
+
+  await Promise.all([
+    Clause.truncate(),
+    Table.truncate()
+  ])
+
+  res.status(200).json({
+    message: "success",
+    error: false,
+    message: "Data deleted successfully",
+  });
+});
+
 export const getSinglePdfData = catchAsync(async (req, res, next) => {
   const id = req.params.id;
   const clauseQuery = req.query.clause;
 
   let pdf;
+  let table;
 
   if (clauseQuery) {
     pdf = await Clause.findByPk(id);
     pdf = { [clauseQuery]: pdf.data[clauseQuery] };
   } else {
     pdf = await Clause.findByPk(id);
+    table = await Table.findByPk(pdf.tableId)
   }
 
   res.status(200).json({
@@ -91,5 +99,48 @@ export const getSinglePdfData = catchAsync(async (req, res, next) => {
     error: false,
     message: "Pdf data fetched successfully",
     pdf,
+    table
   });
 });
+
+export const updatePdfData = catchAsync(async (req, res, next) => {
+  const id = req.params.id
+  const query = req.query.clause
+  const content = req.body.content
+  const tableContent = req.body.tableContent
+
+  // console.log(tableContent)
+
+  const updatedTable = tableContent.map((item) => removeNewlines(item))
+
+  const clauses = await Clause.findByPk(id);
+  const table = await Table.findByPk(clauses.tableId)
+
+  // console.log(table.setDataValue, "------------")
+
+  if (content) {
+    clauses.set({
+      data: {
+        ...clauses.data,
+        [query]: content
+      }
+    })
+    await clauses.save()
+  }
+
+  if (tableContent) {
+    table.setDataValue('data', updatedTable)
+    await table.save()
+
+    // const newTable = await Table.findByPk(clauses.tableId)
+
+    // console.log(newTable)
+  }
+
+  res.status(200).json({
+    status: "success",
+    error: false,
+    message: "Data updated successfully",
+    data: null
+  })
+})

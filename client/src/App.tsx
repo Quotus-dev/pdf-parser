@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { ChangeEvent, useEffect, useMemo, useState } from "react";
 import {
   Select,
@@ -8,6 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./components/ui/select";
+import AceEditor from "react-ace";
 
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
@@ -35,6 +37,13 @@ import {
 } from "./components/ui/dialog";
 import { Textarea } from "./components/ui/textarea";
 
+import "ace-builds/src-noconflict/mode-json";
+import "ace-builds/src-noconflict/theme-github";
+import "ace-builds/src-noconflict/ext-language_tools";
+
+import JSONInput from "react-json-editor-ajrm";
+import locale from "react-json-editor-ajrm/locale/en";
+
 // import { useState } from 'react'
 function App() {
   const [file, setFile] = useState<File>();
@@ -44,7 +53,11 @@ function App() {
   const [tables, setTables] = useState({});
   const [err, setErr] = useState("");
   const [uploaderLoading, setUploaderLoading] = useState(false);
-  const [seletectedClauseValue, setSeletectedClauseValue] = useState("");
+  const [selectedClauseValue, setSelectedClauseValue] = useState("");
+  const [clauseId, setClauseId] = useState("");
+  const [tableId, setTableId] = useState("");
+  const [content, setContent] = useState("");
+  const [updatedTable, setUpdatedValue] = useState("");
 
   function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
     setFile(e.target.files![0]);
@@ -83,6 +96,8 @@ function App() {
       // console.log(data.data.data?.clauses?.data);
       setLoading(false);
       setClauses(data.data.data?.clauses?.data);
+      setClauseId(data?.data?.data.clauses.id);
+      setTableId(data?.data?.data.clauses.tableId);
       setTables(data.data?.data?.tables?.data);
     } catch (err) {
       toast.error(
@@ -97,9 +112,49 @@ function App() {
       const key = Object.keys(clauses).filter((key) => key === clause);
       const value = key.map((k) => clauses[k])[0];
 
-      setSeletectedClauseValue(value);
+      setSelectedClauseValue(value);
     }
   }, [clause]);
+
+  const handleUpdate = async () => {
+    await axios.patch(
+      `http://localhost:5050/api/v1/pdf/${clauseId}?clause=${clause}`,
+      {
+        content: content,
+      }
+    );
+
+    const res = await axios.get(`http://localhost:5050/api/v1/pdf/${clauseId}`);
+
+    console.log(res.data);
+
+    setClauses(res.data.pdf.data);
+    // setClauseId(res?.data?.data.clauses.id);
+    // setTableId(res?.data?.data.clauses.tableId);
+    setTables(res.data?.table?.data);
+  };
+
+  function handleTableChange(newValue) {
+    console.log(newValue);
+    setUpdatedValue(newValue);
+  }
+
+  async function handleTableUpdate() {
+    // console.log(JSON.parse(updatedTable));
+
+    await axios.patch(`http://localhost:5050/api/v1/pdf/${clauseId}`, {
+      tableContent: updatedTable,
+    });
+
+    const res = await axios.get(`http://localhost:5050/api/v1/pdf/${clauseId}`);
+
+    console.log(res.data);
+
+    setClauses(res.data.pdf.data);
+    // setClauseId(res?.data?.data.clauses.id);
+    // setTableId(res?.data?.data.clauses.tableId);
+    setTables(res.data?.table?.data);
+  }
 
   return (
     <>
@@ -160,11 +215,15 @@ function App() {
                   </CardHeader>
                   <CardContent>
                     <ScrollArea className="h-[200px] w-[250px]">
-                      <p className="text-sm">{seletectedClauseValue}</p>
+                      <p className="text-sm">{selectedClauseValue}</p>
                     </ScrollArea>
                   </CardContent>
                   <CardFooter>
-                    <Dialog>
+                    <Dialog
+                      onOpenChange={(open) =>
+                        !open ? setContent("") : setContent(selectedClauseValue)
+                      }
+                    >
                       <DialogTrigger asChild>
                         <Button>Edit</Button>
                       </DialogTrigger>
@@ -172,9 +231,15 @@ function App() {
                         <DialogHeader>
                           <DialogTitle>Edit clause {clause}</DialogTitle>
                         </DialogHeader>
-                        <Textarea rows={10} value={seletectedClauseValue} />
+                        <Textarea
+                          onChange={(e) => setContent(e.target.value)}
+                          rows={10}
+                          value={content ?? selectedClauseValue}
+                        />
                         <DialogFooter>
-                          <Button type="submit">Save</Button>
+                          <Button onClick={handleUpdate} type="submit">
+                            Save
+                          </Button>
                         </DialogFooter>
                       </DialogContent>
                     </Dialog>
@@ -191,7 +256,39 @@ function App() {
             </div>
           ) : null}
           {Object.keys(tables).length ? (
-            <div className="grid border-2 min-h-[250px] rounded-md border-border place-content-center overflow-auto items-center gap-1.5">
+            <div className="grid border-2 min-h-[250px] rounded-md border-border place-content-center relative overflow-auto items-center gap-1.5">
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button className="w-max my-2 ml-2">Edit</Button>
+                </DialogTrigger>
+                <DialogContent className="w-[500px]">
+                  <DialogHeader>
+                    <DialogTitle>Edit Table</DialogTitle>
+                  </DialogHeader>
+                  <AceEditor
+                    mode="json"
+                    theme="github"
+                    onChange={handleTableChange}
+                    value={
+                      updatedTable == "" ? JSON.stringify(tables) : updatedTable
+                    }
+                    wrapEnabled={true}
+                  />
+                  {/* <JSONInput
+                    id="a_unique_id"
+                    placeholder={tables}
+                    // colors={"darktheme"}
+                    locale={locale}
+                    height="550px"
+                    onChange={handleTableChange}
+                  /> */}
+                  <DialogFooter>
+                    <Button onClick={handleTableUpdate} type="submit">
+                      Save
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
               <ReactJson
                 src={tables}
                 style={{

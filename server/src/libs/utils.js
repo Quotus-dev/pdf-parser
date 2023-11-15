@@ -75,5 +75,16 @@ export const handleScript = (pythonScript, pdfFile, outputDir) => {
   });
 }
 
+export function removeNewlines(obj) {
+  // Base case: If the table is an array, remove \n characters
+  if (Array.isArray(obj.table)) {
+    obj.table = obj.table.map((row) => row.map((item) => removeNewlines(item)));
+  } else if (typeof obj.text === 'string') {
+    obj.text = obj.text.replace(/\n/g, '');
+  }
+
+  return obj;
+}
+
 // module.exports.AppError = AppError
 // module.exports.catchAsync = catchAsync

@@ -16,15 +16,12 @@ Table.init(
         data: {
             type: DataTypes.JSONB,
             get() {
-                return JSON.parse(this.getDataValue("data"));
+                return this.getDataValue("data")
             },
             set(value) {
                 return this.setDataValue("data", JSON.stringify(value));
             },
         },
-        // documentId: {
-        //     type: DataTypes.UUID
-        // }
     },
     {
         sequelize,

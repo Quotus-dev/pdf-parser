@@ -1,10 +1,10 @@
 import { Router } from "express";
-import { extractDataAndUploadToDB, getPDFData, getSinglePdfData } from "../controllers/pdf.controller.js";
+import { deleteAllData, extractDataAndUploadToDB, getPDFData, getSinglePdfData, updatePdfData } from "../controllers/pdf.controller.js";
 
 const router = Router();
 
-router.route("/").get(getPDFData).post(extractDataAndUploadToDB);
+router.route("/").get(getPDFData).post(extractDataAndUploadToDB).delete(deleteAllData)
 // router.route("/test").get(getTest)
-// router.route("/:id").get(getSinglePdfData)
+router.route("/:id").get(getSinglePdfData).patch(updatePdfData)
 
 export default router
