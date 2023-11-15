@@ -29,8 +29,12 @@ def convert_pdf_to_image(input_dir,out_dir):
     input_pdf = input_dir
     output_directory = out_dir
     # images = convert_from_path(input_pdf)
-    pdf_document = fitz.open(input_pdf)
-
+    try:
+       pdf_document = fitz.open(input_pdf)
+    except Exception as e:
+        # Code to handle any type of exception
+        return {'type':'error','response':str(e)}
+    
     for page_number in range(pdf_document.page_count):
         # Get the page
         page = pdf_document.load_page(page_number)        
@@ -74,7 +78,7 @@ def convert_pdf_to_image(input_dir,out_dir):
 
     # Sort the list of image files based on the page number
     image_files.sort(key=get_page_number)
-    return image_files
+    return {'type':'response','response':image_files} 
     
 
 def allowed_file(filename):
@@ -271,7 +275,7 @@ def saveToDb(data_to_insert,uuid):
             cursor.close()
     conn.close()
     
-    return {'id':uuid}
+    return {'type':'response','response':{'id':uuid}}
 
 
 
@@ -285,6 +289,7 @@ async def websocket_handler(websocket, path):
         async for message in websocket:
             # print(message,flush=True)
             parsed_data = json.loads(message)
+            print(parsed_data,flush=True)
             
 
             response = []
@@ -309,9 +314,14 @@ async def websocket_handler(websocket, path):
                 
                 response = saveToDb(tables,parsed_data['uuid'])
             else:
-                response =  convert_pdf_to_image(parsed_data['file_dir'],parsed_data['output_dir'])
+                response = {}
+                try:
+                    response =  convert_pdf_to_image(parsed_data['file_dir'],parsed_data['output_dir'])
+                except Exception as e:
+                    # Code to handle any type of exception
+                    response = {'type':'error','response':str(e)}
             # print(table_id,"table_id",flush=True)
-            await websocket.send(json.dumps({'type':'response','response':response}))
+            await websocket.send(json.dumps(response))
             await websocket.close()
     except websockets.exceptions.ConnectionClosedError:
         pass

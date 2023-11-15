@@ -5,24 +5,25 @@ import { extractDataAndUploadToDB } from "../controllers/pdf.controller.js";
 import http from 'http';
 
 // Set up a function to check and handle CORS for WebSocket connections
-// Set up a function to check and handle CORS for WebSocket connections
 const setupWebSocketServer = (port,app) => {
   // console.log(`🚀 Web Socket Server running ${port}`);
   const server = http.createServer(app);
   const wss = new WebSocketServer({ server});
-  let hasProcessedValidMessage = false;
 
   wss.on("connection", (ws) => {
     console.log("Client connected");
+    let hasProcessedValidMessage = false;
 
     ws.on("message", async (message) => {
-      // console.log(`${message}`)
       if (hasProcessedValidMessage) {
-        ws.send(
-          JSON.stringify({ error: true, message: "Extraction is progress." })
-        );
-        return;
-      }
+          ws.send(
+            JSON.stringify({
+              error: true,
+              message: "Extraction is already in progress.",
+            })
+          );
+          return;
+        }
 
       try {
         var pdfPages = JSON.parse(`${message}`);
@@ -38,10 +39,10 @@ const setupWebSocketServer = (port,app) => {
       }
 
       if (Array.isArray(pdfPages)) {
-        if (!hasProcessedValidMessage) {
-          const response = await extractDataAndUploadToDB(pdfPages, ws);
-          hasProcessedValidMessage = true;
-        }
+          if(!hasProcessedValidMessage){
+            const response = await extractDataAndUploadToDB(pdfPages, ws);
+            hasProcessedValidMessage = true;
+          }
       } else {
         const response = {
           error: true,

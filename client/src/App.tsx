@@ -91,28 +91,13 @@ function App() {
 
       setLoading(true);
       
-      // console.log(res.data.data.outputArray.response);
-      
       setDocumentImages(res.data?.data?.outputArray?.response)
-      // console.log('+++++++++++++++',res.data.data.outputArray)
-      
-      // const data = await axios.post("http://localhost:5050/api/v1/pdf", {
-      //   files: res.data.data.outputArray,
-      // });
-
-      // // console.log(data.data.data?.clauses?.data);
-      // // console.log('+++++++++++++++',data.data.data?.clauses?.data)
-      // setLoading(false);
-      // // console.log('+++++++++++++++',data.data.data?.clauses?.data)
-      // // console.log('===============',data.data?.data?.tables?.data)
-
-      // setClauses(data.data.data?.clauses?.data);
-      // setTables(data.data?.data?.tables?.data);
-    } catch (err) {
+    } catch (err) {      
       toast.error(
-        err?.message || "Something went wrong, please try again later"
+        err?.response.data.message || "Something went wrong, please try again later"
       );
       setLoading(false);
+      setUploaderLoading(false);
     }
   }
 
@@ -148,7 +133,7 @@ function App() {
   useEffect(()=>{
 
     if(lastMessage != null){
-        console.log('last_messages', lastMessage)
+        // console.log('last_messages', lastMessage)
         const jsonMesasges = JSON.parse(lastMessage?.data);
         if(jsonMesasges?.type == 'progress'){
           // progress
@@ -301,7 +286,7 @@ function Table({ data }: { data: unknown }) {
   }
 
   useEffect(() => {
-    console.log("Runnning ...", page);
+    // console.log("Runnning ...", page);
     const d = Object.values(data).filter((d) => d?.page === page);
     setPageData(d);
   }, [data, page]);

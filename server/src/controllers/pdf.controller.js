@@ -7,6 +7,9 @@ import Clause from "../models/data.model.js";
 import pdfTextExtractor from "../services/pdfService.js";
 import Table from "../models/table.model.js";
 import os from "os";
+import fs from 'fs'
+import path from 'path';
+
 export const extractDataAndUploadToDB = catchAsync(async (files, ws) => {
 
 
@@ -27,13 +30,6 @@ export const extractDataAndUploadToDB = catchAsync(async (files, ws) => {
       tableId: table.id,
     });
 
-    // clauses.tableId = tables.id
-
-    // console.log(tables.id)
-    // console.log(clauses.id)
-
-    // clauses.setDataValue("TableId", tables.id)
-    // tables.setDataValue("documentId", clauses.id)
     await clauses.save();
     tables = await Table.findByPk(table.id);
     // console.log(tables, "+++++++++++++++++++++")
@@ -61,6 +57,18 @@ export const extractDataAndUploadToDB = catchAsync(async (files, ws) => {
       tables,
     },
   };
+  console.log(files)
+
+  files.forEach((filePath) => {
+    fs.unlink(filePath, (err) => {
+      if (err) {
+        console.error(`Error deleting file ${filePath}: ${err.message}`);
+      } else {
+        console.log(`File ${filePath} deleted successfully`);
+      }
+    });
+  });
+
   ws.send(JSON.stringify(response));
   ws.close();
   return response;
