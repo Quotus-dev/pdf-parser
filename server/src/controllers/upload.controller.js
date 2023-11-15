@@ -1,6 +1,6 @@
 import { catchAsync, handleScript } from "../libs/utils.js";
 import { exec } from "child_process";
-import WebSocket from 'ws';
+import WebSocket from "ws";
 // import fs from 'fs';
 // import path from 'path';
 
@@ -19,9 +19,7 @@ export const handleUpload = catchAsync(async (req, res, next) => {
           status: "error",
           error: false,
           message: "File not found.",
-          data: {
-
-          },
+          data: {},
         });
       }
 
@@ -31,7 +29,19 @@ export const handleUpload = catchAsync(async (req, res, next) => {
           output_dir: outputDir,
           type: "extract_image",
         });
-        // return res.send(outputArray)
+    
+        if (outputArray.type == "error") {
+          res.status(400).json({
+            status: "failed",
+            error: true,
+            message: outputArray.response,
+            data: {
+              outputArray,
+            },
+          });
+          return "";
+        }
+    
         res.status(200).json({
           status: "success",
           error: false,
@@ -55,18 +65,18 @@ export const handleUpload = catchAsync(async (req, res, next) => {
 
 async function sendJsonRequest(request) {
   return new Promise((resolve, reject) => {
-    const ws = new WebSocket('ws://py-server:5151');
+    const ws = new WebSocket("ws://py-server:5151");
 
-    ws.on('open', () => {
-      console.log('WebSocket connection opened.');
+    ws.on("open", () => {
+      console.log("WebSocket connection opened.");
       // Stringify the JSON request
       const jsonRequest = JSON.stringify(request);
       // Send the JSON request to the WebSocket server
       ws.send(jsonRequest);
     });
 
-    ws.on('message', (message) => {
-      console.log('Received message from WebSocket server:', message);
+    ws.on("message", (message) => {
+      console.log("Received message from WebSocket server:", message);
       // Parse the received JSON response
       const jsonResponse = JSON.parse(message);
       // Resolve the promise with the received JSON response
@@ -75,12 +85,12 @@ async function sendJsonRequest(request) {
       ws.close();
     });
 
-    ws.on('close', () => {
-      console.log('WebSocket connection closed.');
+    ws.on("close", () => {
+      console.log("WebSocket connection closed.");
     });
 
-    ws.on('error', (error) => {
-      console.error('WebSocket error:', error);
+    ws.on("error", (error) => {
+      console.error("WebSocket error:", error);
       reject(error);
     });
   });

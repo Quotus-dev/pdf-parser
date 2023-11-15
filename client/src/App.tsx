@@ -20,6 +20,10 @@ import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { ScrollArea } from "./components/ui/scroll-area";
+import io from 'socket.io-client';
+import ProgressBar from 'react-bootstrap/ProgressBar';
+
+import { Progress } from "@material-tailwind/react";
 import {
   Card,
   CardContent,
@@ -36,6 +40,8 @@ import {
   DialogTrigger,
 } from "./components/ui/dialog";
 import { Textarea } from "./components/ui/textarea";
+import useWebSocket, { ReadyState } from 'react-use-websocket';
+
 
 import "ace-builds/src-noconflict/mode-json";
 import "ace-builds/src-noconflict/theme-github";
@@ -58,6 +64,11 @@ function App() {
   const [tableId, setTableId] = useState("");
   const [content, setContent] = useState("");
   const [updatedTable, setUpdatedValue] = useState("");
+  const [documentImages, setDocumentImages] = useState([]);
+  const [progress, setProgress] = useState(0);
+  const [socketUrl, setSocketUrl] = useState('');
+  const [messageHistory, setMessageHistory] = useState([]);
+  const { sendMessage, lastMessage, readyState } = useWebSocket(socketUrl);
 
   function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
     setFile(e.target.files![0]);
@@ -99,11 +110,13 @@ function App() {
       setClauseId(data?.data?.data.clauses.id);
       setTableId(data?.data?.data.clauses.tableId);
       setTables(data.data?.data?.tables?.data);
-    } catch (err) {
+      setDocumentImages(res.data?.data?.outputArray?.response)
+    } catch (err) {     
       toast.error(
-        err?.message || "Something went wrong, please try again later"
+        err?.response.data.message || "Something went wrong, please try again later"
       );
       setLoading(false);
+      setUploaderLoading(false);
     }
   }
 
@@ -155,6 +168,53 @@ function App() {
     // setTableId(res?.data?.data.clauses.tableId);
     setTables(res.data?.table?.data);
   }
+  useEffect(() => {
+    if (documentImages.length != 0) {
+      setSocketUrl('ws://localhost:8080');
+
+      const connectionStatus = {
+        [ReadyState.CONNECTING]: 'Connecting',
+        [ReadyState.OPEN]: 'Open',
+        [ReadyState.CLOSING]: 'Closing',
+        [ReadyState.CLOSED]: 'Closed',
+        [ReadyState.UNINSTANTIATED]: 'Uninstantiated',
+      }[readyState];
+
+      if(readyState == 0){
+        sendMessage(JSON.stringify(documentImages));
+      }
+      console.log(connectionStatus)
+     
+    }
+  }, [documentImages]);
+
+  useEffect(()=>{
+
+    if(lastMessage != null){
+        // console.log('last_messages', lastMessage)
+        const jsonMesasges = JSON.parse(lastMessage?.data);
+        if(jsonMesasges?.type == 'progress'){
+          // progress
+          setProgress(parseFloat(jsonMesasges.progress))
+        }
+        if(jsonMesasges?.type == 'task_completed'){
+          toast.success(jsonMesasges?.message)
+        }
+        if(jsonMesasges?.type == 'new_task_started'){
+          toast.success(jsonMesasges?.message)
+
+        }
+
+        if(jsonMesasges.status == 'success'){
+          setLoading(false);
+          const data = jsonMesasges.data
+          setClauses(data?.clauses?.data);
+          setTables(data?.tables?.data);
+        }
+    }
+
+  },[lastMessage])
+
 
   return (
     <>
@@ -188,6 +248,7 @@ function App() {
             <Loader2Icon height={20} width={20} className="animate-spin" />
           </div>
         )}
+        {loading && (<Progress value={progress} label="Completed" />)}
         <div className="flex items-center gap-4 justify-center">
           {Object.keys(clauses).length ? (
             <div className="grid border-2 min-h-[500px] w-[500px] rounded-md border-border place-content-center overflow-auto items-center gap-1.5">
@@ -325,7 +386,7 @@ function Table({ data }: { data: unknown }) {
   }
 
   useEffect(() => {
-    console.log("Runnning ...", page);
+    // console.log("Runnning ...", page);
     const d = Object.values(data).filter((d) => d?.page === page);
     setPageData(d);
   }, [data, page]);

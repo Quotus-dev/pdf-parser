@@ -11,6 +11,7 @@ import pdfRoutes from "./routes/pdf.routes.js";
 import uploadRoutes from "./routes/upload.routes.js";
 // import { sequelize } from "./libs/db";
 import cors from "cors"
+import setupWebSocketServer from "./routes/WebSocket.js";
 
 config();
 
@@ -37,6 +38,7 @@ app.use(errorHandler);
 
 export const { PORT } = process.env;
 
+setupWebSocketServer(8080,app);
 // export {PORT}
 
 // export const { PORT, MONGO_URI } = process.env;

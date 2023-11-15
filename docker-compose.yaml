@@ -49,6 +49,7 @@ services:
     depends_on:
       - db
       - server
+      
   server:
     build:
       context: './server'
@@ -56,6 +57,7 @@ services:
     restart: always
     ports:
       - 5050:5050
+      - 8080:8080
     container_name: server
     networks:
       - mjunction
