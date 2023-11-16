@@ -1,4 +1,4 @@
-import { AppError, catchAsync } from "../libs/utils.js";
+import { AppError, catchAsync, removeNewlines } from "../libs/utils.js";
 // import { NextFunction, Request, Response } from "express";
 // const amqp = require('amqplib');
 
@@ -57,7 +57,7 @@ export const extractDataAndUploadToDB = catchAsync(async (files, ws) => {
       tables,
     },
   };
-  console.log(files)
+
 
   files.forEach((filePath) => {
     fs.unlink(filePath, (err) => {
@@ -108,3 +108,55 @@ export const getSinglePdfData = catchAsync(async (req, res, next) => {
     pdf,
   });
 });
+
+
+
+export const updatePdfData = catchAsync(async (req, res, next) => {
+  const id = req.params.id
+  const query = req.query.clause
+  const content = req.body.content
+  const tableContent = req.body.tableContent
+
+  console.log("-------------------------------")
+
+  // console.log({tableContent})
+
+  // console.log(tableContent)
+
+  
+  console.log("==========================")
+  
+  const clauses = await Clause.findByPk(id);
+  const table = await Table.findByPk(clauses.tableId)
+
+  // console.log(table.setDataValue, "------------")
+
+  if (content) {
+    clauses.set({
+      data: {
+        ...clauses.data,
+        [query]: content
+      }
+    })
+    await clauses.save()
+  }
+
+  console.log("+++++++++++++++++++++++++++++++++")
+  
+  if (tableContent) {
+    const updatedTable = tableContent.map((item) => removeNewlines(item))
+    table.setDataValue('data', updatedTable)
+    await table.save()
+
+    // const newTable = await Table.findByPk(clauses.tableId)
+
+    // console.log(newTable)
+  }
+
+  res.status(200).json({
+    status: "success",
+    error: false,
+    message: "Data updated successfully",
+    data: null
+  })
+})

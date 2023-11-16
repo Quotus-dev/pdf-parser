@@ -210,7 +210,7 @@ def get_tables_data(path):
 # @app.route('/extract-table', methods=['POST'])
 def extract_table(imagePath):
     if not os.path.exists(imagePath):
-        return jsonify({"error": "Path not exit"})
+        return {"error": "Path not exit"}
     image_rgb = Image.open(imagePath).convert("RGB")
     table_bounding = get_table_bounding_box(imagePath)
     prediction_list = []
