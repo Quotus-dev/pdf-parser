@@ -170,7 +170,7 @@ class PdfTextExtractor {
                     const tokenSeparated = token.split("\n");
 
                     const pointMatch = token.match(
-                        /^(?:\d+(\.\d+)\.$|\\End of Clauses\\*)$/
+                        /^(?:\d+(\.\d+)*\.$|\*\*End of Clauses\*\*)$/
                     );
 
                     if (pointMatch && !stopExtracting && !isInsideDoubleHash) {
@@ -198,7 +198,7 @@ class PdfTextExtractor {
 
                             if (Object.keys(result).length === 1 && Object.values(result)[0] === 'INTRODUCTION ') {
                                 separatedTokenMatch = separatedToken.match(
-                                    /^(?:\d+(\.\d+)\.$|\\End of Clauses\\*)$/
+                                    /^(?:\d+(\.\d+)*\.$|\*\*End of Clauses\*\*)$/
                                 );
                             } else {
                                 separatedTokenMatch = separatedToken.match(/^\d+(\.\d+)+(\.)+$|\\End of Clauses\\$/)
