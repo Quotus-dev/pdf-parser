@@ -30,7 +30,6 @@ class PdfTextExtractor {
         this.cleanedText = ""
         this.ignoreToken = false
 
-
         this.files = []
     }
 
@@ -38,8 +37,24 @@ class PdfTextExtractor {
         return str.match(/^(?:(?:[aA]|[iI])\.|[aAiI]\))/);
     }
 
+    // async initializeWorkers(numWorkers) {
+    //     try {
+    //         const workerGen = async () => {
+    //             const worker = await createWorker("eng", 1);
+    //             if (worker) {
+    //                 this.scheduler.addWorker(worker);
+    //             } else {
+    //                 throw new Error("Worker initialization failed");
+    //             }
+    //         };
+    //         const resArr = Array(numWorkers).fill(null).map(workerGen);
+    //         await Promise.all(resArr);
+    //     } catch (err) {
+    //         throw new Error(err?.message || "Failed to initialize workers");
+    //     }
+    // }
 
-    async processFiles(files,ws) {
+    async processFiles(files) {
 
         const nlp = winkNLP(model, ["sbd", "pos"]);
         const scheduler = createScheduler()
@@ -72,15 +87,12 @@ class PdfTextExtractor {
                 completedJobs++
                 const progress = (completedJobs / totalJobs) * 100
                 console.log(`Progress: ${progress.toFixed(2)}% (${completedJobs}/${totalJobs} jobs completed)`)
-                ws.send(JSON.stringify({type:'progress',message:`Progress: ${progress.toFixed(2)}% (${completedJobs}/${totalJobs} jobs completed)`,progress:progress.toFixed(2),task:{total:totalJobs,completed:completedJobs}}));
 
                 if (completedJobs === totalJobs) {
                     const endTime = performance.now()
                     processingTime = (endTime - startTime) / 1000;
                     processingTime = processingTime / 60
-                    // console.log('All Clause extraction jobs completed.', `It took ${processingTime} minute`);
-                    ws.send(JSON.stringify({"type": "task_completed","message": "All Clause extraction jobs completed.",time:processingTime,task:'clause'}));
-                   
+                    console.log(`'All jobs completed.', It took ${processingTime} minute`);
                     // process.exit(0);
                 }
             }
@@ -142,10 +154,23 @@ class PdfTextExtractor {
                         clauseStarted = true;
                     }
 
+                    // console.log({ token })
+
+                    // if ((token.startsWith("H#") || token.startsWith("#H#") || token.startsWith("##")) && (token.endsWith("#i#") || token.endsWith("##"))) {
+                    //     // console.log("++++++++++++++++++++++++++", token)
+                    //     this.ignoreToken = true
+                    //     this.isInsideDoubleHash = !this.isInsideDoubleHash;
+                    // }
+
+                    // if (token.endsWith("#i#") || token.endsWith("##")) {
+                    //     console.log("----------------------------------", token)
+                    //     this.isInsideDoubleHash = !this.isInsideDoubleHash;
+                    // }
+
                     const tokenSeparated = token.split("\n");
 
                     const pointMatch = token.match(
-                        /^(?:\d+(\.\d+)*\.$|\*\*End of Clauses\*\*)$/
+                        /^(?:\d+(\.\d+)\.$|\\End of Clauses\\*)$/
                     );
 
                     if (pointMatch && !stopExtracting && !isInsideDoubleHash) {
@@ -173,7 +198,7 @@ class PdfTextExtractor {
 
                             if (Object.keys(result).length === 1 && Object.values(result)[0] === 'INTRODUCTION ') {
                                 separatedTokenMatch = separatedToken.match(
-                                    /^(?:\d+(\.\d+)*\.$|\*\*End of Clauses\*\*)$/
+                                    /^(?:\d+(\.\d+)\.$|\\End of Clauses\\*)$/
                                 );
                             } else {
                                 separatedTokenMatch = separatedToken.match(/^\d+(\.\d+)+(\.)+$|\\End of Clauses\\$/)
@@ -182,9 +207,9 @@ class PdfTextExtractor {
                             // console.log({ separatedTokenMatch: separatedToken.match(/^\d+(\.\d+)+(\.)+$|\\End of Clauses\\$/) })
 
                             if (
-                                separatedToken === "**End of Clauses**" ||
-                                separatedToken === "**End of Clauses™**" || separatedToken === "**End of Clauses™*" ||
-                                separatedToken === "“*End of clauses™" || separatedToken === "**¥*% End of clauses ***"
+                                separatedToken === "*End of Clauses*" ||
+                                separatedToken === "*End of Clauses™" || separatedToken === "End of Clauses™" ||
+                                separatedToken === "“End of clauses™" || separatedToken === "¥% End of clauses *"
                             ) {
                                 stopExtracting = true;
                             }
@@ -253,21 +278,15 @@ class PdfTextExtractor {
         //   .then((images) => console.log("Exported", images.length, "images"))
         //   .catch(console.error);
     }
-    async extractTableFromPdf(ws) {
+    async extractTableFromPdf() {
         const tableData = [];
         try {
-            console.log('extract_table_started', "JSONRESPONSE")
-
             const uuid = uuidv4();
-            // await ws.send('Table extraction started.')
-            await ws.send(JSON.stringify({"type": "new_task_started","message": "Table extraction started.",task:'table'}));
-
-            if(this.ClausePages == undefined){
-                this.ClausePages = [];
+            const jsonResponse = await sendJsonRequest({ 'tables': this.ClausePages, 'uuid': uuid, 'type': 'extract_table' });
+            console.log(jsonResponse, "JSONRESPONSE")
+            if(jsonResponse.type == 'response'){
+                return jsonResponse.response;
             }
-
-            const jsonResponse = await sendJsonRequest({ 'tables': this.ClausePages, 'uuid': uuid, 'type': 'extract_table' },ws);
-            return jsonResponse;
         } catch (error) {
             console.error("Error:", error);
         }
@@ -276,15 +295,14 @@ class PdfTextExtractor {
 
 
 
-async function sendJsonRequest(request,wsr) {
+async function sendJsonRequest(request) {
     return new Promise((resolve, reject) => {
         const ws = new WebSocket('ws://py-server:5151');
 
         ws.on('open', () => {
-            console.log('WebSocket connection opened.2');
+            console.log('WebSocket connection opened.');
             // Stringify the JSON request
             const jsonRequest = JSON.stringify(request);
-            // console.log(jsonRequest,'-00000')
             // Send the JSON request to the WebSocket server
             ws.send(jsonRequest);
         });
@@ -293,17 +311,16 @@ async function sendJsonRequest(request,wsr) {
             console.log('Received message from WebSocket server:', message);
             // Parse the received JSON response
             const jsonResponse = JSON.parse(message);
-            // console.log(jsonResponse,'response-from-the-py-server')
-            if(jsonResponse.type == 'response'){
-                resolve(jsonResponse.response);
-                ws.close();
-            }else{
-                wsr.send(JSON.stringify(jsonResponse))
-                console.log(jsonResponse.message)
-            }
             // Resolve the promise with the received JSON response
-            // Close the WebSocket connection after receiving a response
+            // console.log(jsonResponse, "JSONRESPONSE")
+
+            if(jsonResponse.type == 'response'){
+                resolve(jsonResponse);
+            }
             
+
+            // Close the WebSocket connection after receiving a response
+            ws.close();
         });
 
         ws.on('close', () => {

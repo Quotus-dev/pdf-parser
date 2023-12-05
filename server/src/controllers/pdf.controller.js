@@ -7,22 +7,17 @@ import Clause from "../models/data.model.js";
 import pdfTextExtractor from "../services/pdfService.js";
 import Table from "../models/table.model.js";
 import os from "os";
-import fs from 'fs'
-import path from 'path';
 
-export const extractDataAndUploadToDB = catchAsync(async (files, ws) => {
-
-
+export const extractDataAndUploadToDB = catchAsync(async (req, res, next) => {
+  const files = req.body.files;
+  // let data;
   let table;
   let tables;
   let clauses;
 
   try {
-    const numCPUs = os.cpus().length;
-    // await pdfTextExtractor.initializeWorkers(numCPUs - 1);
-    clauses = await pdfTextExtractor.processFiles(files,ws);
-    table = await pdfTextExtractor.extractTableFromPdf(ws);
-
+    clauses = await pdfTextExtractor.processFiles(files);
+    table = await pdfTextExtractor.extractTableFromPdf();
     clauses = await Clause.create({
       data: {
         ...clauses,
@@ -32,23 +27,18 @@ export const extractDataAndUploadToDB = catchAsync(async (files, ws) => {
 
     await clauses.save();
     tables = await Table.findByPk(table.id);
-    // console.log(tables, "+++++++++++++++++++++")
     tables = tables.dataValues;
   } catch (err) {
-    // console.log(err);
-    const response =  {
+    console.log(err);
+    return res.status(500).json({
       status: "failed",
       error: true,
       message: err?.message || "Some error occurred, please try again later",
-    };
-    ws.send(JSON.stringify(response));
-    ws.close();
-    return response;
+    });
     // }
   }
 
-
-  const response =  {
+  res.status(200).json({
     status: "success",
     error: false,
     message: "Data extracted successfully",
@@ -56,25 +46,12 @@ export const extractDataAndUploadToDB = catchAsync(async (files, ws) => {
       clauses,
       tables,
     },
-  };
-
-
-  files.forEach((filePath) => {
-    fs.unlink(filePath, (err) => {
-      if (err) {
-        console.error(`Error deleting file ${filePath}: ${err.message}`);
-      } else {
-        console.log(`File ${filePath} deleted successfully`);
-      }
-    });
   });
-
-  ws.send(JSON.stringify(response));
-  ws.close();
-  return response;
 });
 
 export const getPDFData = catchAsync(async (req, res, next) => {
+
+
   const data = await Clause.findAll();
 
   const tables = await Table.findAll();
@@ -88,17 +65,33 @@ export const getPDFData = catchAsync(async (req, res, next) => {
   });
 });
 
+export const deleteAllData = catchAsync(async (req, res, next) => {
+
+  await Promise.all([
+    Clause.truncate(),
+    Table.truncate()
+  ])
+
+  res.status(200).json({
+    message: "success",
+    error: false,
+    message: "Data deleted successfully",
+  });
+});
+
 export const getSinglePdfData = catchAsync(async (req, res, next) => {
   const id = req.params.id;
   const clauseQuery = req.query.clause;
 
   let pdf;
+  let table;
 
   if (clauseQuery) {
     pdf = await Clause.findByPk(id);
     pdf = { [clauseQuery]: pdf.data[clauseQuery] };
   } else {
     pdf = await Clause.findByPk(id);
+    table = await Table.findByPk(pdf.tableId)
   }
 
   res.status(200).json({
@@ -106,10 +99,9 @@ export const getSinglePdfData = catchAsync(async (req, res, next) => {
     error: false,
     message: "Pdf data fetched successfully",
     pdf,
+    table
   });
 });
-
-
 
 export const updatePdfData = catchAsync(async (req, res, next) => {
   const id = req.params.id
@@ -117,15 +109,10 @@ export const updatePdfData = catchAsync(async (req, res, next) => {
   const content = req.body.content
   const tableContent = req.body.tableContent
 
-  console.log("-------------------------------")
-
-  // console.log({tableContent})
-
   // console.log(tableContent)
 
-  
-  console.log("==========================")
-  
+  const updatedTable = tableContent.map((item) => removeNewlines(item))
+
   const clauses = await Clause.findByPk(id);
   const table = await Table.findByPk(clauses.tableId)
 
@@ -141,10 +128,7 @@ export const updatePdfData = catchAsync(async (req, res, next) => {
     await clauses.save()
   }
 
-  console.log("+++++++++++++++++++++++++++++++++")
-  
   if (tableContent) {
-    const updatedTable = tableContent.map((item) => removeNewlines(item))
     table.setDataValue('data', updatedTable)
     await table.save()
 
