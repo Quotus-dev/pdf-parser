@@ -7,12 +7,10 @@ import Clause from "../models/data.model.js";
 import pdfTextExtractor from "../services/pdfService.js";
 import Table from "../models/table.model.js";
 import os from "os";
-import fs from 'fs'
-import path from 'path';
+import fs from "fs";
+import path from "path";
 
 export const extractDataAndUploadToDB = catchAsync(async (files, ws) => {
-
-
   let table;
   let tables;
   let clauses;
@@ -20,7 +18,7 @@ export const extractDataAndUploadToDB = catchAsync(async (files, ws) => {
   try {
     const numCPUs = os.cpus().length;
     // await pdfTextExtractor.initializeWorkers(numCPUs - 1);
-    clauses = await pdfTextExtractor.processFiles(files,ws);
+    clauses = await pdfTextExtractor.processFiles(files, ws);
     table = await pdfTextExtractor.extractTableFromPdf(ws);
 
     clauses = await Clause.create({
@@ -36,7 +34,7 @@ export const extractDataAndUploadToDB = catchAsync(async (files, ws) => {
     tables = tables.dataValues;
   } catch (err) {
     // console.log(err);
-    const response =  {
+    const response = {
       status: "failed",
       error: true,
       message: err?.message || "Some error occurred, please try again later",
@@ -47,8 +45,7 @@ export const extractDataAndUploadToDB = catchAsync(async (files, ws) => {
     // }
   }
 
-
-  const response =  {
+  const response = {
     status: "success",
     error: false,
     message: "Data extracted successfully",
@@ -58,21 +55,63 @@ export const extractDataAndUploadToDB = catchAsync(async (files, ws) => {
     },
   };
 
-
-  files.forEach((filePath) => {
-    fs.unlink(filePath, (err) => {
-      if (err) {
-        console.error(`Error deleting file ${filePath}: ${err.message}`);
-      } else {
-        console.log(`File ${filePath} deleted successfully`);
-      }
-    });
-  });
+  // files.forEach((filePath) => {
+  //   fs.unlink(filePath, (err) => {
+  //     if (err) {
+  //       console.error(`Error deleting file ${filePath}: ${err.message}`);
+  //     } else {
+  //       console.log(`File ${filePath} deleted successfully`);
+  //     }
+  //   });
+  // });
 
   ws.send(JSON.stringify(response));
   ws.close();
   return response;
 });
+
+export const extractDataAndUploadToDBApi = catchAsync(
+  async (req, res, next) => {
+    const files = req.body.files;
+    // let data;
+    let table;
+    let tables;
+    let clauses;
+
+    try {
+      clauses = await pdfTextExtractor.processFiles(files);
+      table = await pdfTextExtractor.extractTableFromPdf();
+      clauses = await Clause.create({
+        data: {
+          ...clauses,
+        },
+        tableId: table.id,
+      });
+
+      await clauses.save();
+      tables = await Table.findByPk(table.id);
+      tables = tables.dataValues;
+    } catch (err) {
+      console.log(err);
+      return res.status(500).json({
+        status: "failed",
+        error: true,
+        message: err?.message || "Some error occurred, please try again later",
+      });
+      // }
+    }
+
+    res.status(200).json({
+      status: "success",
+      error: false,
+      message: "Data extracted successfully",
+      data: {
+        clauses,
+        tables,
+      },
+    });
+  }
+);
 
 export const getPDFData = catchAsync(async (req, res, next) => {
   const data = await Clause.findAll();
@@ -93,41 +132,40 @@ export const getSinglePdfData = catchAsync(async (req, res, next) => {
   const clauseQuery = req.query.clause;
 
   let pdf;
+  let table;
 
   if (clauseQuery) {
     pdf = await Clause.findByPk(id);
     pdf = { [clauseQuery]: pdf.data[clauseQuery] };
   } else {
     pdf = await Clause.findByPk(id);
+    // table = await Table.findByPk(pdf.tableId)
   }
 
   res.status(200).json({
     status: "Success",
     error: false,
     message: "Pdf data fetched successfully",
-    pdf,
+    pdf
   });
 });
 
-
-
 export const updatePdfData = catchAsync(async (req, res, next) => {
-  const id = req.params.id
-  const query = req.query.clause
-  const content = req.body.content
-  const tableContent = req.body.tableContent
+  const id = req.params.id;
+  const query = req.query.clause;
+  const content = req.body.content;
+  const tableContent = req.body.tableContent;
 
-  console.log("-------------------------------")
+  console.log("-------------------------------");
 
   // console.log({tableContent})
 
   // console.log(tableContent)
 
-  
-  console.log("==========================")
-  
+  console.log("==========================");
+
   const clauses = await Clause.findByPk(id);
-  const table = await Table.findByPk(clauses.tableId)
+  const table = await Table.findByPk(clauses.tableId);
 
   // console.log(table.setDataValue, "------------")
 
@@ -135,18 +173,18 @@ export const updatePdfData = catchAsync(async (req, res, next) => {
     clauses.set({
       data: {
         ...clauses.data,
-        [query]: content
-      }
-    })
-    await clauses.save()
+        [query]: content,
+      },
+    });
+    await clauses.save();
   }
 
-  console.log("+++++++++++++++++++++++++++++++++")
-  
+  console.log("+++++++++++++++++++++++++++++++++");
+
   if (tableContent) {
-    const updatedTable = tableContent.map((item) => removeNewlines(item))
-    table.setDataValue('data', updatedTable)
-    await table.save()
+    const updatedTable = tableContent.map((item) => removeNewlines(item));
+    table.setDataValue("data", updatedTable);
+    await table.save();
 
     // const newTable = await Table.findByPk(clauses.tableId)
 
@@ -157,6 +195,6 @@ export const updatePdfData = catchAsync(async (req, res, next) => {
     status: "success",
     error: false,
     message: "Data updated successfully",
-    data: null
-  })
-})
+    data: null,
+  });
+});

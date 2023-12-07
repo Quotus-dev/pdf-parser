@@ -39,7 +39,7 @@ class PdfTextExtractor {
     }
 
 
-    async processFiles(files,ws) {
+    async processFiles(files,ws = '') {
 
         const nlp = winkNLP(model, ["sbd", "pos"]);
         const scheduler = createScheduler()
@@ -72,14 +72,18 @@ class PdfTextExtractor {
                 completedJobs++
                 const progress = (completedJobs / totalJobs) * 100
                 console.log(`Progress: ${progress.toFixed(2)}% (${completedJobs}/${totalJobs} jobs completed)`)
-                ws.send(JSON.stringify({type:'progress',message:`Progress: ${progress.toFixed(2)}% (${completedJobs}/${totalJobs} jobs completed)`,progress:progress.toFixed(2),task:{total:totalJobs,completed:completedJobs}}));
+                if(ws != ''){
+                    ws.send(JSON.stringify({type:'progress',message:`Progress: ${progress.toFixed(2)}% (${completedJobs}/${totalJobs} jobs completed)`,progress:progress.toFixed(2),task:{total:totalJobs,completed:completedJobs}}));
+                }
 
                 if (completedJobs === totalJobs) {
                     const endTime = performance.now()
                     processingTime = (endTime - startTime) / 1000;
                     processingTime = processingTime / 60
                     // console.log('All Clause extraction jobs completed.', `It took ${processingTime} minute`);
-                    ws.send(JSON.stringify({"type": "task_completed","message": "All Clause extraction jobs completed.",time:processingTime,task:'clause'}));
+                    if(ws != ''){
+                        ws.send(JSON.stringify({"type": "task_completed","message": "All Clause extraction jobs completed.",time:processingTime,task:'clause'}));
+                    }
                    
                     // process.exit(0);
                 }
@@ -253,14 +257,16 @@ class PdfTextExtractor {
         //   .then((images) => console.log("Exported", images.length, "images"))
         //   .catch(console.error);
     }
-    async extractTableFromPdf(ws) {
+    async extractTableFromPdf(ws = '') {
         const tableData = [];
         try {
             console.log('extract_table_started', "JSONRESPONSE")
 
             const uuid = uuidv4();
             // await ws.send('Table extraction started.')
-            await ws.send(JSON.stringify({"type": "new_task_started","message": "Table extraction started.",task:'table'}));
+            if(ws != ''){
+                await ws.send(JSON.stringify({"type": "new_task_started","message": "Table extraction started.",task:'table'}));
+            }
 
             if(this.ClausePages == undefined){
                 this.ClausePages = [];
@@ -298,8 +304,11 @@ async function sendJsonRequest(request,wsr) {
                 resolve(jsonResponse.response);
                 ws.close();
             }else{
-                wsr.send(JSON.stringify(jsonResponse))
-                console.log(jsonResponse.message)
+                if(wsr != ''){
+                    wsr.send(JSON.stringify(jsonResponse))
+                    console.log(jsonResponse.message)
+                }
+                
             }
             // Resolve the promise with the received JSON response
             // Close the WebSocket connection after receiving a response
