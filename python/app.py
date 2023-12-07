@@ -295,7 +295,12 @@ async def websocket_handler(websocket, path):
             response = []
             if(parsed_data['type'] == 'extract_table'):                
                     # Calculate the number of processes (half of available CPU cores)
-                num_processes = max(1, round(cpu_count()/100 *60))
+                print(cpu_count())
+                print('cpu count')
+                num_processes = max(1, round(cpu_count()/2))
+                print(num_processes)
+                print('processes')
+                
 
                 with Pool(processes=num_processes) as pool:
                         results = []
