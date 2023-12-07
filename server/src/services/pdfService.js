@@ -273,6 +273,7 @@ class PdfTextExtractor {
             }
 
             const jsonResponse = await sendJsonRequest({ 'tables': this.ClausePages, 'uuid': uuid, 'type': 'extract_table' },ws);
+            this.ClausePages = [];
             return jsonResponse;
         } catch (error) {
             console.error("Error:", error);
