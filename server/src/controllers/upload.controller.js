@@ -1,6 +1,7 @@
 import { catchAsync, handleScript } from "../libs/utils.js";
 import { exec } from "child_process";
 import WebSocket from "ws";
+import fs from 'fs'
 // import fs from 'fs';
 // import path from 'path';
 
@@ -29,7 +30,35 @@ export const handleUpload = catchAsync(async (req, res, next) => {
           output_dir: outputDir,
           type: "extract_image",
         });
-    
+
+        fs.readdir(outputDir, (err, files) => {
+          if (err) {
+            console.log("Error reading directory: ", err)
+            return;
+          }
+
+          const folders = files.filter(file => fs.statSync(`${outputDir}/${file}`).isDirectory());
+
+          const folderFiles = folders.map((folder) => {
+            const pageImages = {
+              page: folder,
+              images: [...fs.readdirSync(`${outputDir}/${folder}`, (err, files) => {
+                if (err) {
+                  console.log("Error reading image directory: ", err)
+                  return
+                }
+                const newFiles = files.map((file) => `${outputDir}/${folder}/${file}`)
+                return newFiles
+              })]
+            }
+
+            return pageImages
+          }).map((folderFile) => ({ ...folderFile, images: folderFile.images.map((image) => `${outputDir}/${folderFile.page}/${image}`) }))
+
+          // Log the list of folders
+          console.log('Folders in the directory:', folderFiles);
+        })
+
         if (outputArray.type == "error") {
           res.status(400).json({
             status: "failed",
@@ -41,7 +70,7 @@ export const handleUpload = catchAsync(async (req, res, next) => {
           });
           return "";
         }
-    
+
         res.status(200).json({
           status: "success",
           error: false,
