@@ -4,3 +4,4 @@ server/output
 server/uploads
 python/uploads
 server/package-lock.json
+python/__pycache__/
