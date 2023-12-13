@@ -27,7 +27,7 @@ async def websocket_handler(websocket, path):
                 response = {}
                 try:
                     obj = convertIntoImages(parsed_data['file_dir'],parsed_data['output_dir'])
-                    response =  obj.public_extract_page_from_pdf()
+                    response = await obj.public_extract_page_from_pdf()
                     obj.cleanup
                 except Exception as e:
                     # Code to handle any type of exception

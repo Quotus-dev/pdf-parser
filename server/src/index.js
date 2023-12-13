@@ -12,6 +12,7 @@ import uploadRoutes from "./routes/upload.routes.js";
 // import { sequelize } from "./libs/db";
 import cors from "cors"
 import setupWebSocketServer from "./routes/WebSocket.js";
+import Files from "./models/files.model.js";
 
 config();
 

@@ -16,3 +16,4 @@ websockets
 PyMuPDF
 # fitz
 # tqdm
+firebase-admin

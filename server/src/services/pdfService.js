@@ -155,7 +155,7 @@ class PdfTextExtractor {
                     if (pointMatch && !stopExtracting && !isInsideDoubleHash) {
                         if (Object.hasOwn(result, pointMatch[0])) {
                             cleanedText = pointMatch[0];
-                            result[currentPoint] += cleanedText;
+                            result[currentPoint] = (result[currentPoint] || []).concat(cleanedText);
                         } else {
                             tableEncountered = false;
                             currentPoint = pointMatch[0];
@@ -230,6 +230,10 @@ class PdfTextExtractor {
 
                     // this.ignoreToken = false
                 });
+
+                // if (currentPoint && result[currentPoint]) {
+                //     result[currentPoint] = result[currentPoint].join(" ");
+                // }
 
                 // At the end of processing each file:
                 if (nonValidatedPoints.length) {
