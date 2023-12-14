@@ -3,4 +3,3 @@ services:
   server:
     environment:
       - NODE_ENV=production
-    command: npm start

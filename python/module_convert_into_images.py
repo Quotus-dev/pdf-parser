@@ -20,7 +20,7 @@ try:
 # 'app-admin-config-{}.json'.format(ENVIRONMENT)
 
     initialize_app(cred,{'storageBucket': "pdf-parser-mjunction.appspot.com",})
-    print('unable to connect to firebase',flush=True)
+    print('Success fully connected to firebase ',flush=True)
     
 except Exception as e:
     print('unable to connect to firebase',flush=True)
@@ -160,7 +160,7 @@ class convertIntoImages:
             return {'type':'error','response':str(e)}
         
         num_processes = max(1, round(cpu_count() / 2))
-        # asyncio.create_task(upload_image(self.output_directory,self.input_pdf,'main_pdf','')) 
+        asyncio.create_task(upload_image(self.output_directory,self.input_pdf,'main_pdf','')) 
         with Pool(processes=num_processes) as pool:
             # Define multiple input values as a list of tuples
             pages_to_process = [(self.input_pdf,self.output_directory,i) for i in range(pdf_document.page_count)]
@@ -169,7 +169,7 @@ class convertIntoImages:
             result = pool.starmap(convert_pdf_to_image, pages_to_process)
         # print(result,flush=True)
         # await upload_image(result,'','base_image')
-        # asyncio.create_task(upload_image(result,self.input_pdf,'base_image',self.output_directory)) 
+        asyncio.create_task(upload_image(result,self.input_pdf,'base_image',self.output_directory)) 
         
         image_extensions = ['jpg', 'jpeg', 'png', 'gif']
 

@@ -32,21 +32,39 @@ class PdfTextExtractor {
 
 
         this.files = []
+        this.worker_array = []
+
     }
 
     validate(str) {
         return str.match(/^(?:(?:[aA]|[iI])\.|[aAiI]\))/);
     }
 
+    
 
     async processFiles(files,ws = '') {
 
+        if(ws != ''){
+            ws.on("close", () => {
+                this.worker_array.forEach((worker)=>{
+                    try {
+                        worker.terminate();
+                        console.log('all worker are terminate.',worker.id)
+                    } catch (error) {
+                        console.error(error);
+                    }
+                })
+            });
+        }
+        
+
         const nlp = winkNLP(model, ["sbd", "pos"]);
-        const scheduler = createScheduler()
+        let scheduler = createScheduler()
         const numWorkers = os.cpus().length - 1;
 
         const workerGen = async () => {
             const worker = await createWorker('eng', 1);
+            this.worker_array.push(worker)
             scheduler.addWorker(worker);
         }
         // Initialize workers
@@ -237,6 +255,7 @@ class PdfTextExtractor {
 
                 // At the end of processing each file:
                 if (nonValidatedPoints.length) {
+                    this.ClausePages = [];
                     throw new Error(`Validation error, we found some points which are not allowed i.e ${nonValidatedPoints.join(",")}`);
                 }
 
@@ -246,10 +265,33 @@ class PdfTextExtractor {
             });
         }
 
+        
+
+        if (result.hasOwnProperty("1.")) {
+            // Now, you can also check if the value associated with "1." is "INTRODUCTION"
+            const ifIntroductionExistsRegex = /INTRODUCTION/g
+
+            const ifIntroductionExists = ifIntroductionExistsRegex.test(result["1."])
+
+            if (!ifIntroductionExists) {
+                throw new Error(`Validation error, The first entry should be  '1. INTRODUCTION'`);
+            } 
+        } else {
+            throw new Error(`Validation error, the document does not comply with our validation rule.`);
+        }
+
         // Process each file
 
         // Process text from each file
-
+        // console.log(this.worker_array,'>>>>>>>>>>>>>>>>>>>>')    
+    
+        this.worker_array.forEach((worker)=>{
+            try {
+                worker.terminate();
+            } catch (error) {
+                console.error(error);
+            }
+        })
         await scheduler.terminate();
         return result
     };

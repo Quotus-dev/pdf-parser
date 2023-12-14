@@ -2,7 +2,7 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# RUN npm install -g pm2
+RUN npm install -g pm2
 
 # # Install Python and PyMuPDF
 # RUN apk add --update --no-cache python3 py3-pip
@@ -55,4 +55,8 @@ RUN npm install
 
 COPY . .
 
-CMD ["npm", "run", "dev"]
+
+
+
+
+CMD if [ "$NODE_ENV" = "production" ]; then pm2-runtime ./src/server.js; else npm run dev; fi

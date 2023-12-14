@@ -16,9 +16,7 @@ async def websocket_handler(websocket, path):
             
 
             response = []
-            if(parsed_data['type'] == 'extract_table'):                
-                    # Calculate the number of processes (half of available CPU cores)
-                # response = extract_table_multiprocessor(parsed_data,websocket)
+            if(parsed_data['type'] == 'extract_table'):
                 objExtractTable = extractTable(parsed_data,websocket)
                 extractTableResult = await objExtractTable.extract_table_multiprocessor()
                 response = extractTableResult
