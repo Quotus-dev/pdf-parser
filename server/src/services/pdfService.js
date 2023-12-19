@@ -4,7 +4,7 @@ import axios from "axios";
 import FormData from "form-data";
 import { createScheduler, createWorker } from "tesseract.js";
 
-import model from "wink-eng-lite-web-model";
+import model from "wink-eng-lite-model";
 import winkNLP from "wink-nlp";
 // import amqp from "amqplib"
 import { v4 as uuidv4 } from 'uuid';
@@ -58,7 +58,7 @@ class PdfTextExtractor {
         }
         
 
-        const nlp = winkNLP(model, ["sbd", "pos"]);
+        const nlp = winkNLP(model, ["sbd"]);
         let scheduler = createScheduler()
         const numWorkers = os.cpus().length - 1;
 
@@ -120,6 +120,7 @@ class PdfTextExtractor {
                 const { data: { text } } = await scheduler.addJob('recognize', file);
                 progress++;
                 trackProgress();
+                // console.log({length: text.length})
                 return text;
             });
 
@@ -250,7 +251,7 @@ class PdfTextExtractor {
                 });
 
                 // if (currentPoint && result[currentPoint]) {
-                //     result[currentPoint] = result[currentPoint].join(" ");
+                //     result[currentPoint] limitedText= result[currentPoint].join(" ");
                 // }
 
                 // At the end of processing each file:
