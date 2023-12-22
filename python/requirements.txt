@@ -3,10 +3,10 @@ requests==2.26.0
 tabula-py==2.3.0
 Pillow==8.2.0
 numpy==1.21.1
-opencv-python==4.5.3.56
-pytesseract==0.3.8
+opencv-python
+pytesseract
 img2table
-Werkzeug==2.0.2
+Werkzeug
 flask-cors
 gunicorn
 pika

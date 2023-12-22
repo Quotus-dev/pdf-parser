@@ -48,7 +48,7 @@ def convert_pdf_to_image(input_pdf,output_directory,page_number):
    
     # Get the page
     page = pdf_document.load_page(page_number)        
-    image = page.get_pixmap(matrix=fitz.Matrix(100/100, 100/100),dpi=700)
+    image = page.get_pixmap(matrix=fitz.Matrix(100/100, 100/100),dpi=425)
     # image_filename = os.path.join(output_directory, f'page_{page}.png')
     image_filename = os.path.join(output_directory, f'page_{page_number+1}.png')
     for img_index, img in enumerate(page.get_images(full=True)):

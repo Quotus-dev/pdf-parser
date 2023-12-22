@@ -4,7 +4,7 @@ import { AppError, catchAsync, removeNewlines } from "../libs/utils.js";
 
 import Clause from "../models/data.model.js";
 // import { Sequelize } from "sequelize";
-import pdfTextExtractor from "../services/pdfService.js";
+import PdfTextExtractor from "../services/pdfService.js";
 import Table from "../models/table.model.js";
 import os from "os";
 import fs from "fs";
@@ -21,6 +21,8 @@ export const extractDataAndUploadToDB = catchAsync(async (files, ws) => {
   let table;
   let tables;
   let clauses;
+
+  const pdfTextExtractor = new PdfTextExtractor()
 
   try {
     const numCPUs = os.cpus().length;
@@ -132,8 +134,7 @@ export const extractDataAndUploadToDBApi = catchAsync(
     let clauses;
     let filesPath;
 
-  
-
+const pdfTextExtractor = new PdfTextExtractor()
     try {
       if (!req.body || !Array.isArray(files)) {
         throw new Error("Invalid request format. Please provide a valid JSON object with a 'files' key containing an array of image paths.");

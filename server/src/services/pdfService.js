@@ -376,6 +376,4 @@ async function sendJsonRequest(request,wsr) {
     });
 }
 
-const pdfTextExtractor = new PdfTextExtractor();
-
-export default pdfTextExtractor;
+export default PdfTextExtractor;
