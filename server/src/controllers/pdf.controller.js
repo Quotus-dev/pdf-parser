@@ -77,8 +77,54 @@ export const extractDataAndUploadToDB = catchAsync(async (files, ws) => {
   return response;
 });
 
+function getCurrentCpuUsage(startTime) {
+  const startUsage = os.cpus();
+
+
+  // Add a delay (e.g., 100ms) to measure CPU usage over a short interval
+  // You can adjust the delay based on your requirements
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const endUsage = os.cpus();
+
+      const totalUserTime = endUsage.reduce((total, cpu, index) => {
+        const startUserTime = startUsage[index].times.user;
+        const endUserTime = cpu.times.user;
+        const userTimeDiff = endUserTime - startUserTime;
+
+        const startSysTime = startUsage[index].times.sys;
+        const endSysTime = cpu.times.sys;
+        const sysTimeDiff = endSysTime - startSysTime;
+
+        const startNiceTime = startUsage[index].times.nice;
+        const endNiceTime = cpu.times.nice;
+        const niceTimeDiff = endNiceTime - startNiceTime;
+
+        // Calculate the total CPU time (user + sys + nice)
+        const totalTimeDiff = userTimeDiff + sysTimeDiff + niceTimeDiff;
+
+        return total + (totalTimeDiff / (Date.now() - startTime));
+      }, 0) / endUsage.length;
+
+      resolve(totalUserTime * 100); // Convert to percentage
+    }, 100); // Adjust the delay as needed
+  });
+}
+
 export const extractDataAndUploadToDBApi = catchAsync(
   async (req, res, next) => {
+    const startTime = Date.now();
+    await getCurrentCpuUsage(startTime).then((data) => {
+      console.log(`data`, data);
+      if (data >= 80) {
+        return res.status(500).json({
+          status: "failed",
+          error: true,
+          message: "Server is busy right now. Please try again later.",
+        });
+      }
+    });
+    
     const files = req.body.files;
     // let data;
     let table;
