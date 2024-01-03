@@ -183,6 +183,15 @@ function App() {
     if(lastMessage != null){
         // console.log('last_messages', lastMessage)
         const jsonMesasges = JSON.parse(lastMessage?.data);
+        
+        if(jsonMesasges?.type == "progress_data"){
+          setClauses(jsonMesasges?.data)
+        }
+
+        if(jsonMesasges?.type == "table_progress"){
+          console.log({jsonMesasges})
+        }
+
         if(jsonMesasges?.type == 'progress'){
           // progress
           setProgress(parseFloat(jsonMesasges.progress))
@@ -235,123 +244,122 @@ function App() {
           </div>
         </div>
         {err && <h1>{err}</h1>}
-        {loading && (
+        {loading && !Object.keys(clauses).length ? (
           <div className="grid border-2 min-h-[250px] rounded-md border-border place-content-center items-center gap-1.5">
             <Loader2Icon height={20} width={20} className="animate-spin" />
           </div>
-        )}
-        {loading && (<Progress value={progress} label="Completed" />)}
-        <div className="flex items-center gap-4 justify-center">
-          {Object.keys(clauses).length ? (
-            <div className="grid border-2 min-h-[500px] w-[500px] rounded-md border-border place-content-center overflow-auto items-center gap-1.5">
-              <Select onValueChange={(value) => setClause(value)}>
-                <SelectTrigger className="w-[250px]">
-                  <SelectValue placeholder="Select the clause no." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectLabel>Clauses</SelectLabel>
-                    <ScrollArea className="h-[200px] w-[200px]">
-                      {Object.keys(clauses).map((key) => (
-                        <SelectItem value={key} key={key}>
-                          {key}
-                        </SelectItem>
-                      ))}
-                    </ScrollArea>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-              <div>
-                <Card>
-                  <CardHeader>
-                    <CardTitle>{clause}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <ScrollArea className="h-[200px] w-[250px]">
-                      <p className="text-sm">{selectedClauseValue}</p>
-                    </ScrollArea>
-                  </CardContent>
-                  <CardFooter>
-                    <Dialog
-                      onOpenChange={(open) =>
-                        !open ? setContent("") : setContent(selectedClauseValue)
-                      }
-                    >
-                      <DialogTrigger asChild>
-                        <Button>Edit</Button>
-                      </DialogTrigger>
-                      <DialogContent className="sm:max-w-[425px]">
-                        <DialogHeader>
-                          <DialogTitle>Edit clause {clause}</DialogTitle>
-                        </DialogHeader>
-                        <Textarea
-                          onChange={(e) => setContent(e.target.value)}
-                          rows={10}
-                          value={content ?? selectedClauseValue}
-                        />
-                        <DialogFooter>
-                          <Button onClick={handleUpdate} type="submit">
-                            Save
-                          </Button>
-                        </DialogFooter>
-                      </DialogContent>
-                    </Dialog>
-                  </CardFooter>
-                </Card>
-              </div>
-              {/* <ReactJson
-                src={clauses}
-                style={{
-                  height: "500px",
-                  width: "500px",
-                }}
-              /> */}
-            </div>
-          ) : null}
-          {Object.keys(tables).length ? (
-            <div className="grid border-2 min-h-[250px] rounded-md border-border place-content-center relative overflow-auto items-center gap-1.5">
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button className="w-max my-2 ml-2">Edit</Button>
-                </DialogTrigger>
-                <DialogContent className="w-[500px]">
-                  <DialogHeader>
-                    <DialogTitle>Edit Table</DialogTitle>
-                  </DialogHeader>
-                  <AceEditor
-                    mode="json"
-                    theme="github"
-                    onChange={handleTableChange}
-                    value={
-                      updatedTable == "" ? JSON.stringify(tables) : updatedTable
+        ) : <div className="flex items-center gap-4 justify-center">
+        {Object.keys(clauses).length ? (
+          <div className="grid border-2 min-h-[500px] w-[500px] rounded-md border-border place-content-center overflow-auto items-center gap-1.5">
+            <Select onValueChange={(value) => setClause(value)}>
+              <SelectTrigger className="w-[250px]">
+                <SelectValue placeholder="Select the clause no." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectLabel>Clauses</SelectLabel>
+                  <ScrollArea className="h-[200px] w-[200px]">
+                    {Object.keys(clauses).map((key) => (
+                      <SelectItem value={key} key={key}>
+                        {key}
+                      </SelectItem>
+                    ))}
+                  </ScrollArea>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+            <div>
+              <Card>
+                <CardHeader>
+                  <CardTitle>{clause}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ScrollArea className="h-[200px] w-[250px]">
+                    <p className="text-sm">{selectedClauseValue}</p>
+                  </ScrollArea>
+                </CardContent>
+                <CardFooter>
+                  <Dialog
+                    onOpenChange={(open) =>
+                      !open ? setContent("") : setContent(selectedClauseValue)
                     }
-                    wrapEnabled={true}
-                  />
-                  {/* <JSONInput
-                    id="a_unique_id"
-                    placeholder={tables}
-                    // colors={"darktheme"}
-                    locale={locale}
-                    height="550px"
-                    onChange={handleTableChange}
-                  /> */}
-                  <DialogFooter>
-                    <Button onClick={handleTableUpdate} type="submit">
-                      Save
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-              <ReactJson
-                src={tables}
-                style={{
-                  height: "500px",
-                  width: "500px",
-                }}
-              />
+                  >
+                    <DialogTrigger asChild>
+                      <Button>Edit</Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[425px]">
+                      <DialogHeader>
+                        <DialogTitle>Edit clause {clause}</DialogTitle>
+                      </DialogHeader>
+                      <Textarea
+                        onChange={(e) => setContent(e.target.value)}
+                        rows={10}
+                        value={content ?? selectedClauseValue}
+                      />
+                      <DialogFooter>
+                        <Button onClick={handleUpdate} type="submit">
+                          Save
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </CardFooter>
+              </Card>
             </div>
-          ) : null}
-        </div>
+            {/* <ReactJson
+              src={clauses}
+              style={{
+                height: "500px",
+                width: "500px",
+              }}
+            /> */}
+          </div>
+        ) : null}
+        {Object.keys(tables).length ? (
+          <div className="grid border-2 min-h-[250px] rounded-md border-border place-content-center relative overflow-auto items-center gap-1.5">
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button className="w-max my-2 ml-2">Edit</Button>
+              </DialogTrigger>
+              <DialogContent className="w-[500px]">
+                <DialogHeader>
+                  <DialogTitle>Edit Table</DialogTitle>
+                </DialogHeader>
+                <AceEditor
+                  mode="json"
+                  theme="github"
+                  onChange={handleTableChange}
+                  value={
+                    updatedTable == "" ? JSON.stringify(tables) : updatedTable
+                  }
+                  wrapEnabled={true}
+                />
+                {/* <JSONInput
+                  id="a_unique_id"
+                  placeholder={tables}
+                  // colors={"darktheme"}
+                  locale={locale}
+                  height="550px"
+                  onChange={handleTableChange}
+                /> */}
+                <DialogFooter>
+                  <Button onClick={handleTableUpdate} type="submit">
+                    Save
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+            <ReactJson
+              src={tables}
+              style={{
+                height: "500px",
+                width: "500px",
+              }}
+            />
+          </div>
+        ) : null}
+      </div>}
+        {loading && (<Progress value={progress} label="Completed" />)}
       </div>
       <ToastContainer />
     </>

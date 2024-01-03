@@ -178,6 +178,7 @@ class extractTable:
                     completed_tasks += 1
                     progress_percentage = (completed_tasks / total_tasks) * 100
                     await self.websocket.send(json.dumps({'type':'progress','message':f"Progress: {progress_percentage:.2f}% ({completed_tasks} / {total_tasks} jobs completed)",'progress':f"{progress_percentage:.2f}",'task':{'total':total_tasks,'completed':completed_tasks}}))
+                    await self.websocket.send(json.dumps({'type':'table_progress','data':result}))
                     print(f"Progress: {progress_percentage:.2f}% ({completed_tasks} / {total_tasks} jobs completed)" , flush=True)
                 
                 # Terminate the pool after all tasks are completed
