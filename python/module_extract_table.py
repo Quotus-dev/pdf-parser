@@ -8,59 +8,79 @@ import numpy as np
 from pytesseract import Output, pytesseract
 from img2table.document import Image as TableImage
 import psycopg2
-
+import re
 
 
 def extract_table(imagePath):
     if not os.path.exists(imagePath):
         return {"error": "Path not exit"}
     image_rgb = Image.open(imagePath).convert("RGB")
-    table_bounding = get_table_bounding_box(imagePath)
+    table_boundings = get_table_bounding_box(imagePath)
     prediction_list = []
-    if(len(table_bounding) != 0):
-        for i, table_bounding in enumerate(table_bounding):
+    if(len(table_boundings) != 0):
+        for i, table_bounding in enumerate(table_boundings):
             cropped_image = image_rgb.crop([table_bounding['bounding_box']['left']-10,table_bounding['bounding_box']['top']-10,table_bounding['bounding_box']['right']+10,table_bounding['bounding_box']['bottom']+10])
             temp_file_name = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
             cropped_image.save(temp_file_name.name)
             table_data = get_tables_data(temp_file_name.name)
             
-            prediction_list.append({"label":str('table'),"table":table_data,'text': table_bounding['word'],"box":[table_bounding['bounding_box']['left']-10,table_bounding['bounding_box']['top']-10,table_bounding['bounding_box']['right']+10,table_bounding['bounding_box']['bottom']+10]})
+            prediction_list.append({"label":str('table'),"table":table_data,"table_identifier":table_bounding['table_identifier'],'text': table_bounding['word'],"box":[table_bounding['bounding_box']['left']-10,table_bounding['bounding_box']['top']-10,table_bounding['bounding_box']['right']+10,table_bounding['bounding_box']['bottom']+10]})
             cropped_image.close()
             
-    if prediction_list and len(prediction_list) > 0 and 'table' in prediction_list[0]:
-        cleaned_data = [[{'text': elem['text']} for elem in row] for row in prediction_list[0]['table']]
-    else:
-        cleaned_data = []
+    # if prediction_list and len(prediction_list) > 0 and 'table' in prediction_list[0]:
+    #     cleaned_data = [[{'text': elem['text']} for elem in row] for row in prediction_list[0]['table']]
+    # else:
+    #     cleaned_data = []
     # print(cleaned_data,flush=True)
     # return jsonify({"message": "Successfully extracted the table from the image","table":cleaned_data,"page":image.filename})
     filename = os.path.basename(imagePath)
-    return {"table":cleaned_data,"page":filename}
+
+    return {"table":prediction_list,"page":filename}
 
 def get_table_bounding_box(image):
-    
-        image_table = TableImage(image, detect_rotation=False)
-        main_image = Image.open(image).convert("RGB")
-        
-        tables = image_table.extract_tables()
-        ocr_data = []
-        for table in tables:
-            bounding_boxes = {
-            "left": table.bbox.x1,
-            "top": table.bbox.y1, 
-            "right": table.bbox.x2,
-            "bottom": table.bbox.y2
-            }
-            
-            cropped_image = main_image.crop([bounding_boxes['left'],bounding_boxes['top'],bounding_boxes['right'],bounding_boxes['bottom']])
-            image_array = np.array(cropped_image)
-            gray = cv2.cvtColor(image_array, cv2.COLOR_BGR2GRAY)
-            extracted_text = pytesseract.image_to_string(gray,config='— oem 3 — psm 10',lang='eng')
-            # ocr_data.append({"word": extracted_text, "bounding_box": bounding_boxes,"table":True})
-            ocr_data.append({"word": extracted_text, "bounding_box": bounding_boxes,"table":True})
-            
-        
-        return ocr_data
+    image_table = TableImage(image, detect_rotation=False)
+    main_image = Image.open(image).convert("RGB")
+    tables = image_table.extract_tables()
+    ocr_data = []
+    for table in tables:
+        bounding_boxes = {
+        "left": table.bbox.x1,
+        "top": table.bbox.y1, 
+        "right": table.bbox.x2,
+        "bottom": table.bbox.y2
+        }
+        table_identifier = {}
+        cropped_image = main_image.crop([bounding_boxes['left'],bounding_boxes['top'],bounding_boxes['right'],bounding_boxes['bottom']])
+        cropped_image2 = main_image.crop([0,0,main_image.width,bounding_boxes['top']])
+        image_array = np.array(cropped_image2)
+        gray = cv2.cvtColor(image_array, cv2.COLOR_BGR2GRAY)
+        extracted_text_above_table = pytesseract.image_to_string(gray, config='--oem 3 --psm 6')
+        # print(extracted_text_above_table)
+        lines = extracted_text_above_table.splitlines()
+        # print(lines)
+        for i,text in enumerate(reversed(lines)):
+          if re.match(r'^\d+\..*\.?$', text):
+            sliced_list = lines[::-1][:i+1]
+            merged_line = ''.join(sliced_list)
+            pattern = re.compile(r'^(\d+\.\d+)\.\s*(.*)$')
+            # Match the pattern in the merged line
+            match_text = pattern.match(merged_line)
+            if match_text:
+              key = match_text.group(1)
+              value = match_text.group(2)
+              table_identifier = {'key': key, 'value': value}
+            # print(result_dict)
+            break
+        # print(lines)
+        image_array = np.array(cropped_image)
+        gray = cv2.cvtColor(image_array, cv2.COLOR_BGR2GRAY)
+        extracted_text = pytesseract.image_to_string(gray,config='— oem 3 — psm 10',lang='eng')
+        # ocr_data.append({"word": extracted_text, "bounding_box": bounding_boxes,"table":True})
+        ocr_data.append({"word": extracted_text, "bounding_box": bounding_boxes,"table":True,"table_identifier":table_identifier})
 
+    return ocr_data
+    
+    
 def get_tables_data(path):
   read_image= cv2.imread(path,0)
   image_height, image_width = read_image.shape
