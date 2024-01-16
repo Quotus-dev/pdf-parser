@@ -21,6 +21,7 @@ export const extractDataAndUploadToDB = catchAsync(async (files, ws) => {
   let table;
   let tables;
   let clauses;
+  let filesPath;
 
   const pdfTextExtractor = new PdfTextExtractor()
 
@@ -29,6 +30,27 @@ export const extractDataAndUploadToDB = catchAsync(async (files, ws) => {
     // await pdfTextExtractor.initializeWorkers(numCPUs - 1);
     clauses = await pdfTextExtractor.processFiles(files, ws);
     table = await pdfTextExtractor.extractTableFromPdf(ws);
+
+    const id_part = files[0].split("/")[1];
+    const files_path = await Files.findOne({
+      where: {
+        folder_id: id_part,
+      },
+    });
+    // console.log(files_path?.data)
+    if (files_path?.data) {
+      filesPath = files_path?.data;
+      const url = await extractFileUrl(filesPath["pdf_file"]);
+      filesPath["pdf_file"] = url[0];
+      Object.entries(filesPath).forEach((item) => {
+        if (item[1].length != 0 && Array.isArray(item[1])) {
+          item[1].forEach(async (file, i) => {
+            const url = await extractFileUrl(file.img_filename);
+            filesPath[item[0]][i]["img_filename"] = url[0];
+          });
+        }
+      });
+    }
 
     clauses = await Clause.create({
       data: {
@@ -53,6 +75,7 @@ export const extractDataAndUploadToDB = catchAsync(async (files, ws) => {
     return response;
     // }
   }
+  
 
   const response = {
     status: "success",
@@ -61,6 +84,7 @@ export const extractDataAndUploadToDB = catchAsync(async (files, ws) => {
     data: {
       clauses,
       tables,
+      filesPath
     },
   };
 
@@ -126,7 +150,7 @@ export const extractDataAndUploadToDBApi = catchAsync(
         });
       }
     });
-    
+
     const files = req.body.files;
     // let data;
     let table;
@@ -134,12 +158,14 @@ export const extractDataAndUploadToDBApi = catchAsync(
     let clauses;
     let filesPath;
 
-const pdfTextExtractor = new PdfTextExtractor()
+    const pdfTextExtractor = new PdfTextExtractor();
     try {
       if (!req.body || !Array.isArray(files)) {
-        throw new Error("Invalid request format. Please provide a valid JSON object with a 'files' key containing an array of image paths.");
+        throw new Error(
+          "Invalid request format. Please provide a valid JSON object with a 'files' key containing an array of image paths."
+        );
       }
-  
+
       const id_part = files[0].split("/")[1];
       const files_path = await Files.findOne({
         where: {
@@ -147,21 +173,20 @@ const pdfTextExtractor = new PdfTextExtractor()
         },
       });
       // console.log(files_path?.data)
-      if(files_path?.data){
+      if (files_path?.data) {
         filesPath = files_path?.data;
-        const url =  await extractFileUrl(filesPath['pdf_file'])
-        filesPath['pdf_file']  = url[0]
-        Object.entries(filesPath).forEach((item)=>{         
-          if(item[1].length != 0 && Array.isArray(item[1])){
-            item[1].forEach(async (file,i)=>{
-              const url = await extractFileUrl(file.img_filename)
-              filesPath[item[0]][i]['img_filename'] = url[0];
-            })
+        const url = await extractFileUrl(filesPath["pdf_file"]);
+        filesPath["pdf_file"] = url[0];
+        Object.entries(filesPath).forEach((item) => {
+          if (item[1].length != 0 && Array.isArray(item[1])) {
+            item[1].forEach(async (file, i) => {
+              const url = await extractFileUrl(file.img_filename);
+              filesPath[item[0]][i]["img_filename"] = url[0];
+            });
           }
-
-        })
+        });
       }
-      
+
       clauses = await pdfTextExtractor.processFiles(files);
       table = await pdfTextExtractor.extractTableFromPdf();
       clauses = await Clause.create({
@@ -191,7 +216,7 @@ const pdfTextExtractor = new PdfTextExtractor()
       data: {
         clauses,
         tables,
-        filesPath
+        filesPath,
       },
     });
   }
