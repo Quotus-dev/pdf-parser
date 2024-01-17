@@ -62,12 +62,12 @@ def get_table_bounding_box(image):
           if re.match(r'^\d+\..*\.?$', text):
             sliced_list = lines[::-1][:i+1]
             merged_line = ''.join(sliced_list)
-            pattern = re.compile(r'^(\d+\.\d+)\.\s*(.*)$')
+            pattern = re.compile(r'^(\d+(\.\d+)*\.)\s*(.*)$')
             # Match the pattern in the merged line
             match_text = pattern.match(merged_line)
             if match_text:
               key = match_text.group(1)
-              value = match_text.group(2)
+              value = match_text.group(3)
               table_identifier = {'key': key, 'value': value}
             # print(result_dict)
             break
