@@ -75,7 +75,7 @@ export const extractDataAndUploadToDB = catchAsync(async (files, ws) => {
     return response;
     // }
   }
-  
+
 
   const response = {
     status: "success",
@@ -161,9 +161,11 @@ export const extractDataAndUploadToDBApi = catchAsync(
     const pdfTextExtractor = new PdfTextExtractor();
     try {
       if (!req.body || !Array.isArray(files)) {
-        throw new Error(
-          "Invalid request format. Please provide a valid JSON object with a 'files' key containing an array of image paths."
-        );
+        return res.status(400).json({
+          status: "failed",
+          error: true,
+          message: "Invalid request format. Please provide a valid JSON object with a 'files' key containing an array of image paths."
+        })
       }
 
       const id_part = files[0].split("/")[1];
@@ -222,7 +224,7 @@ export const extractDataAndUploadToDBApi = catchAsync(
   }
 );
 
-const extractFileUrl = async (path)=>{
+const extractFileUrl = async (path) => {
 
   const storage = admin.storage();
 
@@ -236,13 +238,13 @@ const extractFileUrl = async (path)=>{
     })
     .then((url) => {
       // Use the signed URL in your application
-       return url;
+      return url;
     })
     .catch((error) => {
       console.error("Error getting signed URL:", error);
     });
 
-    return url;
+  return url;
 }
 
 

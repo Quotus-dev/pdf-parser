@@ -1,29 +1,12 @@
 import swaggerJsDoc from 'swagger-jsdoc';
+import YAML from 'yamljs';
 import swaggerUi from 'swagger-ui-express';
-import { version } from '../../package.json';
 
-const options = {
-    definition: {
-        openapi: '3.1.0',
-        info: {
-            title: 'PDF Parser API Docs',
-            version,
-            description: 'PDF Parser api documentation',
-        },
-        servers: [
-            {
-                url: `http://localhost:${process.env.PORT}/api/v1`,
-            },
-        ],
-    },
-    apis: ['./routes/*.ts'],
-};
-
-const swaggerSpec = swaggerJsDoc(options);
+const swaggerDocument = YAML.load('src/swagger.yaml');
 
 function swaggerDocs(app, port) {
     // Swagger page
-    app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+    app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
     // Docs in JSON format
     app.get('docs.json', (req, res, next) => {

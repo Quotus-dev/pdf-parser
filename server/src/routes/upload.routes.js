@@ -7,22 +7,14 @@ const router = Router();
 
 /**
  * @openapi
- * /upload:
- *  post:
- *    tags:
- *      - Upload
- *    summary: Upload document
- *    consumes: multipart/form-data
- *    parameters:
- *      - in: formData
- *        name: file
- *        type: file
- *        description: Upload pdf document
- *      responses:
- *        200:
- *          description: Successfully logged in to metamask
+ * /:
+ *   get:
+ *     description: Welcome to swagger-jsdoc!
+ *     responses:
+ *       200:
+ *         description: Returns a mysterious string.
  */
-router.route("/").post(function name(req, res, next) {
+router.post("/", function name(req, res, next) {
     upload(req, res, function (err) {
         if (err?.code === "LIMIT_UNEXPECTED_FILE") {
             res.status(422).json({

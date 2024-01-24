@@ -2,7 +2,7 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-RUN yarn global add pm2
+RUN yarn global add pm2 nodemon dotenv
 
 COPY package.json ./
 
