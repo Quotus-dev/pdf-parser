@@ -13,6 +13,7 @@ import uploadRoutes from "./routes/upload.routes.js";
 import cors from "cors"
 import setupWebSocketServer from "./routes/WebSocket.js";
 import Files from "./models/files.model.js";
+import swaggerDocs from "./swagger.js";
 
 config();
 
@@ -25,6 +26,8 @@ app.use(cors())
 
 app.use(express.static("uploads"));
 app.use(express.static('build'))
+
+swaggerDocs(app, process.env.PORT);
 
 app.use("/api/v1/upload", uploadRoutes);
 app.use("/api/v1/pdf", pdfRoutes);
@@ -39,7 +42,7 @@ app.use(errorHandler);
 
 export const { PORT } = process.env;
 
-setupWebSocketServer(8080,app);
+setupWebSocketServer(8080, app);
 // export {PORT}
 
 // export const { PORT, MONGO_URI } = process.env;

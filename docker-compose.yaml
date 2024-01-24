@@ -1,4 +1,4 @@
-version: '3.9'
+version: "3.9"
 services:
   db:
     image: postgres:16
@@ -16,7 +16,7 @@ services:
       POSTGRES_DB: mjunction
     logging:
       driver: none
-      
+
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: pgadmin
@@ -35,7 +35,7 @@ services:
 
   client:
     build:
-      context: './client'
+      context: "./client"
       dockerfile: Dockerfile
     ports:
       - 5173:5173
@@ -43,16 +43,16 @@ services:
     networks:
       - mjunction
     volumes:
-     - type: bind
-       source: ./client
-       target: /app
+      - type: bind
+        source: ./client
+        target: /app
     depends_on:
       - db
       - server
-      
+
   server:
     build:
-      context: './server'
+      context: "./server"
       dockerfile: Dockerfile
     restart: always
     ports:
@@ -75,14 +75,14 @@ services:
     depends_on:
       - db
     volumes:
-    - ./server:/app
-    - /app/node_modules
-    - outPutPath:/app/output
-    - uploadPath:/app/uploads
+      - ./server:/app
+      - /app/node_modules
+      - outPutPath:/app/output
+      - uploadPath:/app/uploads
 
   pyserver:
     build:
-      context: './python'
+      context: "./python"
       dockerfile: Dockerfile
     restart: always
     environment:
@@ -106,9 +106,9 @@ services:
     depends_on:
       - db
     volumes:
-    - ./python:/app
-    - outPutPath:/app/output
-    - uploadPath:/app/uploads
+      - ./python:/app
+      - outPutPath:/app/output
+      - uploadPath:/app/uploads
 networks:
   mjunction:
     driver: bridge
@@ -118,4 +118,3 @@ volumes:
   outPutPath:
   uploadPath:
   pgadmin-data:
-    
